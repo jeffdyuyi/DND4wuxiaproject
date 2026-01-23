@@ -1,45 +1,58 @@
+# 中武江湖·万象图谱 (Wuxia Crafting Tool)
 
-# Wuxia Resource Maker - App Migration
+**中武江湖·万象图谱** 是一款专为武侠题材跑团（TRPG）设计的辅助工具。本项目的核心理念是将 **D&D 4E (龙与地下城第四版)** 严谨的战术战斗规则与富有东方韵味的 **武侠设定** 相结合，为 DM 和玩家提供便捷的资源制作与管理体验。
 
-I have converted the single-file HTML tool (`全资源制作器V4.html`) into a modern, extensible React Application. This structure makes it easier to add new features from existing reference documents in the future.
+## ✨ 设计理念
 
-## Project Structure
+本项目深受 D&D 4E "威能 (Powers)" 系统的启发。在 4E 中，每个职业都拥有 At-Will (随意)、Encounter (遭遇) 和 Daily (每日) 威能，这种设计非常适合表现武侠小说中不同层次的武功招式：
 
-The new application is located in the `app/` directory:
+*   **外家功夫 (At-Will)**: 基础招式，如拳脚刀剑的常规套路，可随时施展，生生不息。
+*   **催动内息 (Encounter)**: 需调动真气爆发的强力招式，战斗中由于内息回转限制，通常使用频率有限（对应遭遇威能）。
+*   **凝神绝技 (Daily)**: 消耗大量精气神的必杀技，威力巨大但消耗甚重，往往需要修整方可再用（对应每日威能）。
 
-- `src/components/`: Contains the UI components.
-    - `Sidebar.tsx`: The left navigation bar.
-    - `ListPanel.tsx`: The item list management (search, create, delete, import/export).
-    - `Editor.tsx`: The main editing form, dynamically rendering fields based on the selected module.
-    - `Preview.tsx`: The card preview and image export logic (using `html2canvas`).
-    - `FormHelpers.tsx`: Reusable form components like `KeywordSelector` and `RangeBuilder`.
-- `src/constants.ts`: Contains the configuration, wuxia terms, and dictionaries from the original tool.
-- `src/types.ts`: TypeScript definitions for the data models.
-- `src/utils/storage.ts`: LocalStorage wrapper to persist data.
-- `src/index.css`: Global styles, including the specific Wuxia card styling.
+通过这种对应，我们将冷冰冰的规则数据转化为生动的江湖武学，既保留了 4E 优秀的战术平衡性，又赋予了其浓厚的武侠风味。
 
-## How to Run
+## 🛠️ 功能列表
 
-1. Open a terminal in the `app` directory.
-2. Install dependencies (if not already done):
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-4. Open the link provided (usually `http://localhost:5173`) in your browser.
+本工具包含以下六大模块，涵盖了角色构建的各个方面：
 
-## Features Preserved
+1.  **⚔️ 武学招式库 (Moves)**
+    *   类似于 4E 的威能卡。
+    *   支持自定义招式类型（外家/内息/绝技）、动作类型、射程范围、攻防检定等。
+    *   内置“关键词”系统（外功、内功、音波、纯阳等），方便规则结算。
 
-- **Data Persistence**: Uses `localStorage` compatible with the original logic (keys like `db_moves_v5`).
-- **Wuxia Terms**: All terms (External/Internal, damage types, etc.) are preserved in `constants.ts`.
-- **Card Rendering**: The visual style of the cards is ported to `index.css` to match the original.
-- **Image Export**: You can copy or download the generated card images.
-- **Import/Export**: Full JSON import/export is supported.
+2.  **🧬 根骨天赋库 (Roots)**
+    *   对应种族 (Race) 设定。
+    *   定义角色的基础属性加成、体征以及独有的天赋绝学。
 
-## Next Steps
+3.  **🔮 先天命格库 (Destinies)**
+    *   对应典范之道或史诗天命 (Paragon Paths / Epic Destinies)。
+    *   赋予角色随等级成长的被动特性和特殊命运。
 
-- You can now easily extend the data models in `types.ts` and add new fields in `Editor.tsx` based on the *DND 4R Player Manual*.
-- The `constants.ts` file is the central place to add new classes, keywords, or rules.
+4.  **🏯 江湖出身库 (Origins)**
+    *   对应背景 (Background)。
+    *   提供技能加成和江湖阅历背景故事。
+
+5.  **🧘 武道造诣库 (Feats)**
+    *   对应专长 (Feats)。
+    *   提供各类被动加成，丰富角色的构建深度。
+
+6.  **🗡️ 神兵宝甲库 (Items)**
+    *   对应魔法物品 (Magic Items)。
+    *   记录武器装备的等级、价值、部位、暴击效果及附带神通。
+
+## 🚀 特色功能
+
+*   **可视化卡片生成**: 所有资源均可实时预览为精美的“武侠风”卡片样式。
+*   **本地化存储**: 所有数据保存在浏览器本地，无需联网即可使用。
+*   **全局搜索**: 支持跨库关键词搜索，快速查找所需条目。
+*   **图片导出**: 支持将制作好的卡片一键导出为 PNG 图片，方便分享或打印。
+*   **数据导入/导出**: 支持 JSON 格式的全库备份与恢复。
+
+## 📦 部署说明
+
+本项目支持直接部署到 GitHub Pages。
+详细部署步骤请参考 [部署指南](./deployment_guide.md)。
+
+---
+*致敬 D&D 4E —— 一个在战术深度上被低估的伟大版本。*
