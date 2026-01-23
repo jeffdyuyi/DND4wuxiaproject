@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { ListPanel } from './components/ListPanel';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
+import { HomePage } from './components/HomePage';
 import type { ModuleType } from './constants';
 import { Config } from './constants';
 import type { Item, DB } from './types';
@@ -18,7 +19,10 @@ const INITIAL_DB: DB = {
   items: []
 };
 
+type ViewMode = 'home' | 'tool';
+
 function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [module, setModule] = useState<ModuleType>('moves');
   const [db, setDb] = useState<DB>(INITIAL_DB);
   const [currentItemId, setCurrentItemId] = useState<string | null>(null);
@@ -30,10 +34,7 @@ function App() {
       newDb[key] = getStorage(Config[key].key);
     }
     setDb(newDb);
-    // Load first item if available
-    if (newDb['moves'].length > 0) setCurrentItemId(newDb['moves'][0].id);
-    else createNew('moves', newDb); // Auto-create if empty on first load? 
-    // Original logic: if (db[mod].length === 0) createNew();
+    // Do not auto-select item or module, stay on home by default unless logic changes
   }, []);
 
   const saveDb = (newDb: DB, mod: ModuleType) => {
@@ -54,6 +55,11 @@ function App() {
     const newDb = { ...currentDb, [mod]: newModList };
     saveDb(newDb, mod);
     setCurrentItemId(id);
+    // Also switch to tool view if creating from somewhere else?
+    if (viewMode === 'home') {
+      setViewMode('tool');
+      setModule(mod);
+    }
   };
 
   const deleteItem = (id: string) => {
@@ -73,8 +79,24 @@ function App() {
 
   const switchModule = (newMod: ModuleType) => {
     setModule(newMod);
+    setViewMode('tool');
     if (db[newMod].length === 0) createNew(newMod);
     else setCurrentItemId(db[newMod][0].id);
+  };
+
+  const goHome = () => {
+    setViewMode('home');
+  };
+
+  const navigateFromHome = (mod: ModuleType, itemId?: string) => {
+    setModule(mod);
+    setViewMode('tool');
+    if (itemId) {
+      setCurrentItemId(itemId);
+    } else {
+      if (db[mod].length === 0) createNew(mod);
+      else setCurrentItemId(db[mod][0].id);
+    }
   };
 
   const handleImport = (file: File) => {
@@ -112,22 +134,34 @@ function App() {
 
   return (
     <div className="app-container">
-      <Sidebar currentModule={module} onSwitchModule={switchModule} />
-      <ListPanel
-        items={db[module]}
-        currentItemId={currentItemId}
-        onSelect={setCurrentItemId}
-        onCreate={() => createNew()}
-        onDelete={deleteItem}
-        onExport={handleExport}
-        onImport={handleImport}
+      <Sidebar
+        currentModule={module}
+        viewMode={viewMode}
+        onSwitchModule={switchModule}
+        onGoHome={goHome}
       />
-      <Editor
-        module={module}
-        item={currentItem}
-        onChange={updateItem}
-      />
-      <Preview module={module} item={currentItem} />
+
+      {viewMode === 'home' ? (
+        <HomePage db={db} onNavigate={navigateFromHome} />
+      ) : (
+        <>
+          <ListPanel
+            items={db[module]}
+            currentItemId={currentItemId}
+            onSelect={setCurrentItemId}
+            onCreate={() => createNew()}
+            onDelete={deleteItem}
+            onExport={handleExport}
+            onImport={handleImport}
+          />
+          <Editor
+            module={module}
+            item={currentItem}
+            onChange={updateItem}
+          />
+          <Preview module={module} item={currentItem} />
+        </>
+      )}
     </div>
   );
 }

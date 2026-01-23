@@ -1,37 +1,35 @@
 
 import React from 'react';
 import type { ModuleType } from '../constants';
-import { Config } from '../constants';
+import { Config, ICONS } from '../constants';
 
 interface SidebarProps {
     currentModule: ModuleType;
+    viewMode: 'home' | 'tool';
     onSwitchModule: (mod: ModuleType) => void;
+    onGoHome: () => void;
 }
 
-const ICONS: Record<ModuleType, string> = {
-    moves: '⚔️',
-    roots: '🧬',
-    destinies: '🔮',
-    origins: '🏯',
-    feats: '🧘',
-    items: '🗡️'
-};
-
-export const Sidebar: React.FC<SidebarProps> = ({ currentModule, onSwitchModule }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentModule, viewMode, onSwitchModule, onGoHome }) => {
     return (
         <div className="main-nav">
+            {/* Home Button */}
+            <div
+                className={`nav-btn ${viewMode === 'home' ? 'active' : ''}`}
+                onClick={onGoHome}
+                style={{ marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}
+            >
+                <span className="nav-icon">🏠</span>
+                <span style={{ fontSize: '10px' }}>首页</span>
+            </div>
+
             {(Object.keys(Config) as ModuleType[]).map((mod) => (
                 <div
                     key={mod}
-                    className={`nav-btn ${currentModule === mod ? 'active' : ''}`}
+                    className={`nav-btn ${viewMode === 'tool' && currentModule === mod ? 'active' : ''}`}
                     onClick={() => onSwitchModule(mod)}
                 >
                     <span className="nav-icon">{ICONS[mod]}</span>
-                    {Config[mod].title.substring(0, 2)} {/* Usually simplified or just title? Original used full "武学" etc, let's check constants */}
-                    {/* The original text was "武学", "根骨" etc. Config titles are "武学招式库". I should extract the short name or store it. */}
-                    {/* Wait, the original HTML hardcoded the text in the div: <div ...>武学</div> */}
-                    {/* I'll infer it or add it to Config if I can edit constants.ts again. Or just use substring or logical mapping. */}
-                    {/* Config titles are 4-5 chars. "武学招式库" -> "武学". "根骨天赋库" -> "根骨". */}
                     <span style={{ fontSize: '10px' }}>{Config[mod].title.substring(0, 2)}</span>
                 </div>
             ))}

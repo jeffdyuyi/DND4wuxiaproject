@@ -17,6 +17,15 @@ export const Keywords = {
     accessory: ["兵器", "法器", "信物", "指法", "剑气"]
 };
 
+export const ICONS: Record<ModuleType, string> = {
+    moves: '⚔️',
+    roots: '🧬',
+    destinies: '🔮',
+    origins: '🏯',
+    feats: '🧘',
+    items: '🗡️'
+};
+
 export const ActionMap = {
     'std': { t: '出招', c: 'act-std' },
     'mov': { t: '身法', c: 'act-mov' },
@@ -38,5 +47,5 @@ export const Shapes = {
     'Wall': '气墙'
 };
 
-export const Stats = ['力量','体质','敏捷','智力','感知','魅力'];
-export const Defenses = { 'AC':'格挡', 'Reflex':'身法', 'Fortitude':'护体', 'Will':'定力' };
+export const Stats = ['力量', '体质', '敏捷', '智力', '感知', '魅力'];
+export const Defenses = { 'AC': '格挡', 'Reflex': '身法', 'Fortitude': '护体', 'Will': '定力' };
