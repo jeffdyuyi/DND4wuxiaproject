@@ -41,9 +41,11 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onClose }) => 
                 </h2>
 
                 <div style={{ marginBottom: '30px', color: '#4a5568', lineHeight: '1.6' }}>
-                    <p style={{ marginBottom: '16px', fontSize: '18px' }}>
-                        <span style={{ fontWeight: 'bold', color: '#2d3748' }}>作者：</span>
-                        不咕鸟（基德）
+                    <p style={{ marginBottom: '12px', fontSize: '18px' }}>
+                        本工具由 <span style={{ fontWeight: 'bold', color: '#2d3748' }}>不咕鸟（基德）</span> 开发。
+                    </p>
+                    <p style={{ marginBottom: '16px', fontSize: '16px', color: '#718096' }}>
+                        内容基于 DND4E 玩家手册中文排版样式，<br />并辅以 AI 技术制作。
                     </p>
                     <p style={{ marginBottom: '16px', fontSize: '18px' }}>
                         <span style={{ fontWeight: 'bold', color: '#2d3748' }}>组织：</span>
