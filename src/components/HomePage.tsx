@@ -28,7 +28,7 @@ export const HomePage: React.FC<HomePageProps> = ({ db, onNavigate }) => {
 
     return (
         <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto', width: '100%', overflowY: 'auto' }}>
-            <h1 style={{ textAlign: 'center', marginBottom: '40px', color: '#2c3e50' }}>中武江湖·万象图谱 (宗师版)</h1>
+            <h1 style={{ textAlign: 'center', marginBottom: '40px', color: '#2c3e50' }}>吾侠</h1>
 
             {/* Dashbaord Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '50px' }}>

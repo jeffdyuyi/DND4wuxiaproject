@@ -5,6 +5,7 @@ import { ListPanel } from './components/ListPanel';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
 import { HomePage } from './components/HomePage';
+import { DisclaimerModal } from './components/DisclaimerModal';
 import type { ModuleType } from './constants';
 import { Config } from './constants';
 import type { Item, DB } from './types';
@@ -26,6 +27,7 @@ function App() {
   const [module, setModule] = useState<ModuleType>('moves');
   const [db, setDb] = useState<DB>(INITIAL_DB);
   const [currentItemId, setCurrentItemId] = useState<string | null>(null);
+  const [showDisclaimer, setShowDisclaimer] = useState(true);
 
   // Initialize from storage on mount
   useEffect(() => {
@@ -134,6 +136,7 @@ function App() {
 
   return (
     <div className="app-container">
+      {showDisclaimer && <DisclaimerModal onClose={() => setShowDisclaimer(false)} />}
       <Sidebar
         currentModule={module}
         viewMode={viewMode}
