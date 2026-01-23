@@ -2,8 +2,8 @@
 import React from 'react';
 import type { ModuleType } from '../constants';
 import { ActionMap } from '../constants';
-import type { Item, MoveItem, EquipmentItem, GeneralItem } from '../types';
-import { Input, Text, Select, KeywordSelector, RangeBuilder, AttackBuilder } from './FormHelpers';
+import type { Item, MoveItem, EquipmentItem, GeneralItem, SchoolItem, RootItem, OriginItem, DestinyItem } from '../types';
+import { Input, Text, Select, KeywordSelector, RangeBuilder, AttackBuilder, TraitListEditor } from './FormHelpers';
 
 interface EditorProps {
     module: ModuleType;
@@ -53,7 +53,6 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                     <Input label="触发 (Trigger)" value={d.trigger} onChange={(v) => update('trigger', v)} />
                     <Input label="目标" value={d.target} onChange={(v) => update('target', v)} />
                     <AttackBuilder att={d.att || ''} def={d.def || ''} onUpdate={(newAtt, newDef) => onChange({ ...item, att: newAtt, def: newDef })} />
-                    {/* Note: simultaneous update needs care in React state. I will fix this in logic */}
                     <Text label="命中 (Hit)" value={d.hit} onChange={(v) => update('hit', v)} />
                     <Text label="失手 (Miss)" value={d.miss} onChange={(v) => update('miss', v)} />
                     <Text label="效果 (Effect)" value={d.effect} onChange={(v) => update('effect', v)} />
@@ -84,43 +83,99 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                 </form>
             </div>
         );
-    } else {
-        const d = item as GeneralItem;
-        let lbl = module === 'roots' ? '根骨' : (module === 'destinies' ? '命格' : (module === 'origins' ? '出身' : '造诣'));
+    } else if (module === 'schools') {
+        const d = item as SchoolItem;
+        return (
+            <div className="editor-panel">
+                <form onSubmit={e => e.preventDefault()}>
+                    <Input label="门派名称" value={d.name} onChange={(v) => update('name', v)} />
+                    <Text label="门派描述 (包含：职能、威能来源、关键属性)" value={d.description} onChange={(v) => update('description', v)} />
 
+                    <div className="row">
+                        <div className="col"><Input label="1级生命值" value={d.hpStart} onChange={(v) => update('hpStart', v)} /></div>
+                        <div className="col"><Input label="每级增加生命" value={d.hpPerLvl} onChange={(v) => update('hpPerLvl', v)} /></div>
+                    </div>
+                    <Input label="每日自疗次数 (Surges)" value={d.surges} onChange={(v) => update('surges', v)} />
+
+                    <div className="row">
+                        <div className="col"><Text label="擅长护甲" value={d.armorProf} onChange={(v) => update('armorProf', v)} /></div>
+                        <div className="col"><Text label="擅长武器" value={d.weaponProf} onChange={(v) => update('weaponProf', v)} /></div>
+                    </div>
+                    <Input label="防御加值" value={d.defBonus} onChange={(v) => update('defBonus', v)} />
+
+                    <Text label="受训技能" value={d.trainedSkills} onChange={(v) => update('trainedSkills', v)} />
+
+                    <TraitListEditor label="门派特技 (School Features)" value={d.features} onChange={(v) => update('features', v)} />
+                </form>
+            </div>
+        );
+    } else if (module === 'roots') {
+        const d = item as RootItem;
+        return (
+            <div className="editor-panel">
+                <form onSubmit={e => e.preventDefault()}>
+                    <Input label="根骨名称" value={d.name} onChange={(v) => update('name', v)} />
+                    <Input label="属性加成" value={d.attributes} onChange={(v) => update('attributes', v)} />
+                    <div className="row">
+                        <div className="col"><Input label="体型" value={d.size} onChange={(v) => update('size', v)} /></div>
+                        <div className="col"><Input label="速度" value={d.speed} onChange={(v) => update('speed', v)} /></div>
+                    </div>
+                    <Input label="视觉" value={d.vision} onChange={(v) => update('vision', v)} />
+                    <Text label="描述/体征" value={d.flavor} onChange={(v) => update('flavor', v)} />
+                </form>
+            </div>
+        );
+    } else if (module === 'origins') {
+        const d = item as OriginItem;
+        return (
+            <div className="editor-panel">
+                <form onSubmit={e => e.preventDefault()}>
+                    <Input label="出身名称" value={d.name} onChange={(v) => update('name', v)} />
+                    <div className="row">
+                        <div className="col"><Input label="语言" value={d.languages} onChange={(v) => update('languages', v)} /></div>
+                        <div className="col"><Input label="技能加值" value={d.skillBonuses} onChange={(v) => update('skillBonuses', v)} /></div>
+                    </div>
+                    <Text label="背景描述" value={d.flavor} onChange={(v) => update('flavor', v)} />
+                    <TraitListEditor label="出身特性 (Traits)" value={d.traits} onChange={(v) => update('traits', v)} />
+                </form>
+            </div>
+        );
+    } else if (module === 'destinies') {
+        // Racial Power replacement
+        const d = item as DestinyItem;
+        return (
+            <div className="editor-panel">
+                <form onSubmit={e => e.preventDefault()}>
+                    <Input label="威能名称" value={d.name} onChange={(v) => update('name', v)} />
+                    <Text label="描述" value={d.flavor} onChange={(v) => update('flavor', v)} />
+                    <div className="row">
+                        <div className="col"><Input label="类型" value={d.powerType} onChange={(v) => update('powerType', v)} /></div>
+                        <div className="col">
+                            <Select label="动作" value={d.action} onChange={(v) => update('action', v)}
+                                options={Object.entries(ActionMap).map(([k, v]) => ({ v: k, t: v.t }))}
+                            />
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col"><RangeBuilder value={d.range} onChange={(v) => update('range', v)} /></div>
+                        <div className="col"><Input label="目标" value={d.target} onChange={(v) => update('target', v)} /></div>
+                    </div>
+                    <Text label="效果" value={d.effect} onChange={(v) => update('effect', v)} />
+                </form>
+            </div>
+        );
+    } else {
+        // Generic / Feats
+        const d = item as GeneralItem;
+        const lbl = '造诣';
         return (
             <div className="editor-panel">
                 <form onSubmit={e => e.preventDefault()}>
                     <Input label={lbl + '名称'} value={d.name} onChange={(v) => update('name', v)} />
-                    {module === 'feats' && <Input label="层级" value={d.tier} onChange={(v) => update('tier', v)} />}
+                    <Input label="修炼门槛" value={d.req} onChange={(v) => update('req', v)} />
+                    <Input label="层级" value={d.tier} onChange={(v) => update('tier', v)} />
                     <Text label="描述" value={d.flavor} onChange={(v) => update('flavor', v)} />
-
-                    {module === 'roots' && (
-                        <>
-                            <Input label="属性加成" value={d.stats} onChange={(v) => update('stats', v)} />
-                            <Input label="基础体征" value={d.traits} onChange={(v) => update('traits', v)} />
-                            <Input label="天赋绝学" value={d.powerName} onChange={(v) => update('powerName', v)} />
-                            <Text label="绝学效果" value={d.powerDesc} onChange={(v) => update('powerDesc', v)} />
-                        </>
-                    )}
-                    {module === 'destinies' && (
-                        <>
-                            <Input label="命格特性" value={d.traits} onChange={(v) => update('traits', v)} />
-                            <Text label="命格被动" value={d.benefit} onChange={(v) => update('benefit', v)} />
-                        </>
-                    )}
-                    {module === 'origins' && (
-                        <>
-                            <Input label="相关技艺" value={d.skills} onChange={(v) => update('skills', v)} />
-                            <Text label="江湖阅历" value={d.benefit} onChange={(v) => update('benefit', v)} />
-                        </>
-                    )}
-                    {module === 'feats' && (
-                        <>
-                            <Input label="修炼门槛" value={d.req} onChange={(v) => update('req', v)} />
-                            <Text label="造诣效果" value={d.benefit} onChange={(v) => update('benefit', v)} />
-                        </>
-                    )}
+                    <Text label="造诣效果" value={d.benefit} onChange={(v) => update('benefit', v)} />
                 </form>
             </div>
         );

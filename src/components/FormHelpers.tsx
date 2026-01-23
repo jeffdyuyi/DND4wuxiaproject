@@ -144,6 +144,7 @@ export const RangeBuilder: React.FC<{ value: string; onChange: (val: string) => 
     );
 }
 
+
 export const AttackBuilder: React.FC<{ att: string; def: string; onUpdate: (a: string, d: string) => void }> = ({ att, def, onUpdate }) => {
     return (
         <div className="form-group">
@@ -161,3 +162,89 @@ export const AttackBuilder: React.FC<{ att: string; def: string; onUpdate: (a: s
         </div>
     );
 };
+
+export const TraitListEditor: React.FC<{
+    label: string;
+    value: { name: string; desc: string }[] | undefined;
+    onChange: (val: { name: string; desc: string }[]) => void;
+}> = ({ label, value = [], onChange }) => {
+    const safeValue = value || [];
+
+    const handleAdd = () => {
+        onChange([...safeValue, { name: "新特性", desc: "..." }]);
+    };
+
+    const handleUpdate = (idx: number, k: 'name' | 'desc', v: string) => {
+        const next = [...safeValue];
+        next[idx] = { ...next[idx], [k]: v };
+        onChange(next);
+    };
+
+    const handleDelete = (idx: number) => {
+        onChange(safeValue.filter((_, i) => i !== idx));
+    };
+
+    return (
+        <div className="form-group">
+            <label>{label}</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {safeValue.map((t, i) => (
+                    <div key={i} style={{ border: '1px solid #ddd', padding: '8px', borderRadius: '4px', background: '#f9f9f9', position: 'relative' }}>
+                        <div className="row" style={{ marginBottom: '4px' }}>
+                            <div className="col">
+                                <input
+                                    className="form-control"
+                                    value={t.name}
+                                    placeholder="特性名称"
+                                    onChange={(e) => handleUpdate(i, 'name', e.target.value)}
+                                    style={{ fontWeight: 'bold' }}
+                                />
+                            </div>
+                            <button
+                                onClick={() => handleDelete(i)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#c0392b',
+                                    cursor: 'pointer',
+                                    fontSize: '18px',
+                                    lineHeight: '1',
+                                    padding: '0 5px'
+                                }}
+                                title="删除"
+                            >
+                                &times;
+                            </button>
+                        </div>
+                        <textarea
+                            className="form-control"
+                            value={t.desc}
+                            placeholder="特性描述..."
+                            onChange={(e) => handleUpdate(i, 'desc', e.target.value)}
+                            rows={2}
+                        />
+                    </div>
+                ))}
+            </div>
+            <button
+                onClick={handleAdd}
+                style={{
+                    backgroundColor: '#ecf0f1',
+                    border: '1px dashed #bdc3c7',
+                    padding: '8px',
+                    width: '100%',
+                    borderRadius: '4px',
+                    color: '#7f8c8d',
+                    cursor: 'pointer',
+                    marginTop: '8px',
+                    transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e0e6e7'; e.currentTarget.style.color = '#2c3e50'; }}
+                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#ecf0f1'; e.currentTarget.style.color = '#7f8c8d'; }}
+            >
+                + 添加特性
+            </button>
+        </div>
+    );
+};
+

@@ -12,6 +12,7 @@ import type { Item, DB } from './types';
 import { getStorage, setStorage } from './utils/storage';
 
 const INITIAL_DB: DB = {
+  schools: [],
   moves: [],
   roots: [],
   destinies: [],
@@ -51,6 +52,10 @@ function App() {
     // Defaults
     if (mod === 'moves') newItem = { ...newItem, type: 'basic', level: 1, cls: '门派', flavor: '描述...', action: 'std', range: '近战 兵器', keywords: '外功, 兵器', target: '一个生物', att: '力量', def: '格挡', hit: '1[W] + 力量调整值 伤害' };
     else if (mod === 'items') newItem = { ...newItem, level: 1, type: '兵器', price: '360两', slot: '主手', flavor: '描述...', enhance: '+1', crit: '+1d6', prop: '', power: '' };
+    else if (mod === 'schools') newItem = { ...newItem, description: '门派描述...', armorProf: '布甲', weaponProf: '简易近战', defBonus: '+1 强韧', hpStart: '12 + 体质值', hpPerLvl: '5', surges: '7 + 体质调整值', trainedSkills: '从列表中选择...', features: [] };
+    else if (mod === 'roots') newItem = { ...newItem, attributes: '+2 力量, +2 敏捷', size: '中型', speed: '6格', vision: '普通', flavor: '描述...' };
+    else if (mod === 'origins') newItem = { ...newItem, languages: '通用语', skillBonuses: '+2 运动', traits: [], flavor: '描述...' };
+    else if (mod === 'destinies') newItem = { ...newItem, powerType: '遭遇', action: '次要动作', range: '近距 爆发 1', effect: '效果...', flavor: '描述...' };
     else newItem = { ...newItem, tier: '英雄层级', flavor: '描述...', benefit: '效果...' };
 
     const newModList = [newItem, ...currentDb[mod]];

@@ -1,5 +1,6 @@
 
 export const Config = {
+    schools: { title: "武林门派库", color: "bg-red", key: "db_schools_v1" },
     moves: { title: "武学招式库", color: "bg-green", key: "db_moves_v5" },
     roots: { title: "根骨天赋库", color: "bg-gray", key: "db_roots_v5" },
     destinies: { title: "先天命格库", color: "bg-gray", key: "db_destinies_v5" },
@@ -18,6 +19,7 @@ export const Keywords = {
 };
 
 export const ICONS: Record<ModuleType, string> = {
+    schools: '🏯',
     moves: '⚔️',
     roots: '🧬',
     destinies: '🔮',

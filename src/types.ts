@@ -49,9 +49,48 @@ export interface GeneralItem extends BaseItem {
     req?: string;
 }
 
-export type Item = MoveItem | EquipmentItem | GeneralItem;
+
+
+
+export interface SchoolItem extends BaseItem {
+    description: string; // Replaces Role, Power Source, Key Abilities
+    armorProf: string;
+    weaponProf: string;
+    defBonus: string;
+    hpStart: string;
+    hpPerLvl: string;
+    surges: string;
+    trainedSkills: string; // Text description of skill choices
+    features: { name: string; desc: string }[]; // List of class features
+}
+
+export interface RootItem extends BaseItem {
+    attributes: string; // +2 Str, etc
+    size: string;
+    speed: string;
+    vision: string;
+    // other stats if needed
+}
+
+export interface OriginItem extends BaseItem {
+    languages: string;
+    skillBonuses: string;
+    traits: { name: string; desc: string }[]; // Racial features like Dragonborn Fury
+}
+
+export interface DestinyItem extends BaseItem {
+    // Replaces Racial Power
+    powerType: string; // Encounter, etc
+    action: string;
+    range: string;
+    target?: string;
+    effect: string;
+}
+
+export type Item = MoveItem | EquipmentItem | GeneralItem | SchoolItem | RootItem | OriginItem | DestinyItem;
 
 export interface DB {
+    schools: Item[];
     moves: Item[];
     roots: Item[];
     destinies: Item[];
