@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中武江湖·万象图谱 v5.0 (宗师辅助版)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+    :root {
+        --bg-color: #eef1f5;
+        --sidebar-bg: #2c3e50;
+        --card-bg: #fdfbf7;
+        
+        /* 招式类型颜色 */
+        --c-atwill: #1f4e3d;   /* 绿：外家 */
+        --c-encounter: #8a2424;/* 红：内息 */
+        --c-daily: #121212;    /* 黑：绝技 */
+        --c-item: #b8860b;     /* 金：神兵 */
+        --c-feat: #455a64;     /* 灰：造诣 */
+        
+        /* UI 辅助色 */
+        --ui-primary: #37474f;
+        --ui-select: #e0f2f1;
+        --ui-border: #cfd8dc;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; height: 100vh; display: flex; font-family: "Microsoft YaHei", sans-serif; background: var(--bg-color); color: #333; overflow: hidden; }
+
+    /* === 布局框架 === */
+    .main-nav { width: 70px; background: #1a2226; display: flex; flex-direction: column; align-items: center; padding-top: 15px; z-index: 50; flex-shrink: 0; }
+    .nav-btn { width: 50px; height: 50px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #90a4ae; font-size: 10px; border: 2px solid transparent; transition: 0.2s; }
+    .nav-btn.active { color: #fff; background: #c0392b; border-color: #c0392b; }
+    
+    .list-panel { width: 240px; background: #fff; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 40; flex-shrink: 0; }
+    .list-header { padding: 10px; background: #f5f5f5; border-bottom: 1px solid #ddd; }
+    #itemList { flex: 1; overflow-y: auto; }
+    .list-item { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; }
+    .list-item.active { background: #ffebee; border-left: 4px solid #c0392b; }
+
+    .editor-panel { flex: 1; min-width: 450px; max-width: 600px; background: #fff; border-right: 1px solid #ccc; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; }
+    .preview-panel { flex: 2; background-color: #cfd8dc; background-image: radial-gradient(#b0bec5 1px, transparent 1px); background-size: 20px 20px; display: flex; flex-direction: column; align-items: center; padding: 30px; overflow-y: auto; }
+
+    /* === 表单组件优化 === */
+    .form-section-label { font-size: 0.85em; color: #1565c0; font-weight: bold; margin: 20px 0 10px 0; border-bottom: 1px dashed #b3e5fc; padding-bottom: 5px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 0.85em; color: #455a64; }
+    .form-control { width: 100%; padding: 6px; border: 1px solid var(--ui-border); border-radius: 4px; font-family: inherit; font-size: 0.9em; }
+    textarea.form-control { resize: vertical; min-height: 50px; }
+    .row { display: flex; gap: 10px; }
+    .col { flex: 1; }
+    
+    /* === 关键词选择器 === */
+    .keyword-group { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; padding: 5px; background: #f9f9f9; border-radius: 4px; border: 1px solid #eee; }
+    .keyword-group-title { width: 100%; font-size: 0.75em; color: #888; margin-bottom: 2px; }
+    .check-btn { 
+        font-size: 0.8em; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; cursor: pointer; background: #fff; user-select: none; transition: 0.1s;
+    }
+    .check-btn:hover { border-color: #666; }
+    .check-btn.selected { background: #37474f; color: white; border-color: #37474f; }
+
+    /* === 射程构建器 === */
+    .range-builder { display: flex; gap: 5px; align-items: center; background: #eceff1; padding: 8px; border-radius: 4px; flex-wrap: wrap; }
+    .range-builder select, .range-builder input { padding: 4px; font-size: 0.85em; border: 1px solid #ccc; border-radius: 3px; }
+    
+    /* === 按钮 === */
+    .btn { padding: 5px 10px; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 3px; font-size: 0.85em; }
+    .btn-primary { background: #333; color: #fff; border-color: #000; }
+
+    /* =========================================
+       卡片样式 (Wuxia / D&D 4E Hybrid)
+       ========================================= */
+    .wuxia-card {
+        width: 420px;
+        background-color: var(--card-bg);
+        border: 2px solid #000;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        font-family: "KaiTi", "楷体", serif;
+        color: #000;
+        position: relative;
+        font-size: 15px;
+        line-height: 1.4;
+        margin-bottom: 30px;
+    }
+    .card-header { padding: 4px 10px; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; }
+    .bg-green { background-color: var(--c-atwill); }
+    .bg-red { background-color: var(--c-encounter); }
+    .bg-black { background-color: var(--c-daily); }
+    .bg-gold { background-color: var(--c-item); }
+    .bg-gray { background-color: var(--c-feat); }
+
+    .card-title { font-family: "LiSu", "隶书", serif; font-size: 1.6em; letter-spacing: 1px; text-shadow: 1px 1px 0 rgba(0,0,0,0.5); }
+    .card-meta { font-family: sans-serif; font-size: 0.85em; font-weight: bold; text-align: right; }
+    .flavor { font-style: italic; padding: 6px 10px; color: #444; background-color: #e8e4dc; border-bottom: 1px solid #c5bba8; font-size: 0.9em; margin-bottom: 2px; }
+    .stat-row { padding: 3px 10px; display: flex; align-items: flex-start; }
+    .stat-row:nth-child(odd) { background: transparent; }
+    .stat-row:nth-child(even) { background: rgba(0,0,0,0.05); }
+    .label { font-weight: 900; margin-right: 5px; color: #1a1a1a; white-space: nowrap; font-family: sans-serif; font-size: 0.95em; }
+    .indent-block { padding: 3px 10px 3px 26px; text-indent: -16px; }
+    .lbl-hit { color: var(--c-encounter); font-weight: 900; } 
+    .lbl-miss { color: #666; font-weight: 900; } 
+    .lbl-effect { color: var(--c-atwill); font-weight: 900; }
+    
+    .act-badge { display: inline-block; padding: 1px 5px; border-radius: 2px; font-size: 0.75em; color: white; font-family: sans-serif; margin-right: 5px; transform: translateY(-1px); }
+    .act-std { background-color: #444; } .act-mov { background-color: #2e7d32; } .act-min { background-color: #ef6c00; } 
+    .act-free { background-color: #757575; } .act-react { background-color: #1565c0; } 
+    .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- 一级导航 -->
+<div class="main-nav">
+    <div class="nav-btn active" onclick="switchMod('moves')"><span class="nav-icon">⚔️</span>武学</div>
+    <div class="nav-btn" onclick="switchMod('roots')"><span class="nav-icon">🧬</span>根骨</div>
+    <div class="nav-btn" onclick="switchMod('destinies')"><span class="nav-icon">🔮</span>命格</div>
+    <div class="nav-btn" onclick="switchMod('origins')"><span class="nav-icon">🏯</span>出身</div>
+    <div class="nav-btn" onclick="switchMod('feats')"><span class="nav-icon">🧘</span>造诣</div>
+    <div class="nav-btn" onclick="switchMod('items')"><span class="nav-icon">🗡️</span>神兵</div>
+</div>
+
+<!-- 二级列表 -->
+<div class="list-panel">
+    <div class="list-header">
+        <div style="display:flex; gap:2px;">
+            <button class="btn" style="flex:1; padding:4px;" onclick="createNew()">+ 新建</button>
+            <button class="btn" style="padding:4px;" onclick="exportData()">💾</button>
+            <button class="btn" style="padding:4px;" onclick="document.getElementById('fileImport').click()">📂</button>
+            <input type="file" id="fileImport" style="display:none" onchange="importData(event)">
+        </div>
+        <input type="text" style="width:100%; margin-top:5px; padding:4px;" placeholder="搜索..." oninput="renderList(this.value)">
+    </div>
+    <div id="itemList"></div>
+</div>
+
+<!-- 编辑区 -->
+<div class="editor-panel">
+    <form id="editorForm">
+        <!-- 动态生成 -->
+    </form>
+</div>
+
+<!-- 预览区 -->
+<div class="preview-panel">
+    <div class="toolbar">
+        <button class="btn btn-primary" onclick="copyImage()">复制图片</button>
+        <button class="btn" onclick="downloadImage()">下载 PNG</button>
+    </div>
+    <div id="cardRender" class="wuxia-card"></div>
+</div>
+
+<script>
+    // ================= 核心词库与数据 =================
+    const Config = {
+        moves: { title: "武学招式库", color: "bg-green", key: "db_moves_v5" },
+        roots: { title: "根骨天赋库", color: "bg-gray", key: "db_roots_v5" },
+        destinies: { title: "先天命格库", color: "bg-gray", key: "db_destinies_v5" },
+        origins: { title: "江湖出身库", color: "bg-gray", key: "db_origins_v5" },
+        feats: { title: "武道造诣库", color: "bg-gray", key: "db_feats_v5" },
+        items: { title: "神兵宝甲库", color: "bg-gold", key: "db_items_v5" }
+    };
+
+    const Keywords = {
+        source: ["外功", "内功", "外家", "内家", "先天", "奇门", "医道"],
+        damage: ["罡劲", "纯阳", "纯阴", "震煞", "丹毒", "浩然", "阴煞", "胆魄", "音波"],
+        effect: ["架势", "迷魂", "威慑", "幻术", "易容", "疗伤", "移形", "阵法", "无遗", "点穴"],
+        accessory: ["兵器", "法器", "信物", "指法", "剑气"]
+    };
+
+    const ActionMap = {
+        'std': { t: '出招', c: 'act-std' },
+        'mov': { t: '身法', c: 'act-mov' },
+        'min': { t: '瞬息', c: 'act-min' },
+        'free': { t: '随心', c: 'act-free' },
+        'react': { t: '变招', c: 'act-react' }
+    };
+
+    // ================= 状态管理 =================
+    let currMod = 'moves';
+    let db = {};
+    let currId = null;
+
+    window.onload = () => {
+        for(let k in Config) db[k] = JSON.parse(localStorage.getItem(Config[k].key)) || [];
+        switchMod('moves');
+    };
+
+    // ================= 逻辑控制 =================
+    function switchMod(mod) {
+        currMod = mod;
+        document.querySelectorAll('.nav-btn').forEach((b, i) => {
+            b.classList.toggle('active', Object.keys(Config)[i] === mod);
+        });
+        
+        // 渲染列表
+        renderList();
+        
+        // 默认加载
+        if(db[mod].length === 0) createNew();
+        else loadItem(db[mod][0].id);
+    }
+
+    function createNew() {
+        const id = Date.now().toString();
+        let item = { id, name: "新条目" };
+        // 默认数据初始化
+        if(currMod === 'moves') item = {...item, type: 'basic', level: 1, cls: '门派', flavor: '描述...', action: 'std', range: '近战 兵器', keywords: '外功, 兵器', target:'一个生物', att:'力量', def:'格挡', hit:'1[W] + 力量调整值 伤害'};
+        else if(currMod === 'items') item = {...item, level: 1, type: '兵器', price: '360两', slot: '主手', flavor: '描述...', enhance: '+1', crit: '+1d6', prop: '', power: ''};
+        else item = {...item, tier: '英雄层级', flavor: '描述...', benefit: '效果...'};
+        
+        db[currMod].unshift(item);
+        saveData();
+        renderList();
+        loadItem(id);
+    }
+
+    function loadItem(id) {
+        currId = id;
+        const item = db[currMod].find(i => i.id === id);
+        if(!item) return;
+        renderForm(item);
+        renderCard(item);
+        document.querySelectorAll('.list-item').forEach(el => el.classList.toggle('active', el.id === `li-${id}`));
+    }
+
+    function updateField(key, val) {
+        const idx = db[currMod].findIndex(i => i.id === currId);
+        if(idx === -1) return;
+        db[currMod][idx][key] = val;
+        saveData();
+        renderCard(db[currMod][idx]);
+        if(key === 'name' || key === 'level') renderList();
+    }
+
+    // ================= 表单构建 (核心优化) =================
+    function renderForm(d) {
+        const f = document.getElementById('editorForm');
+        let h = '';
+        
+        // 通用组件生成器
+        const input = (lbl, k) => `<div class="form-group"><label>${lbl}</label><input type="text" class="form-control" value="${d[k]||''}" oninput="updateField('${k}', this.value)"></div>`;
+        const text = (lbl, k) => `<div class="form-group"><label>${lbl}</label><textarea class="form-control" oninput="updateField('${k}', this.value)">${d[k]||''}</textarea></div>`;
+        const select = (lbl, k, opts) => `<div class="form-group"><label>${lbl}</label><select class="form-control" onchange="updateField('${k}', this.value)">${opts.map(o=>`<option value="${o.v}" ${d[k]==o.v?'selected':''}>${o.t}</option>`).join('')}</select></div>`;
+
+        // 关键词选择器
+        const keywordSelector = () => {
+            const currentKeys = (d.keywords || "").split(/[,，]\s*/).filter(s=>s);
+            const toggleKey = (tag) => {
+                const has = currentKeys.includes(tag);
+                const newKeys = has ? currentKeys.filter(k=>k!==tag) : [...currentKeys, tag];
+                updateField('keywords', newKeys.join('，'));
+                renderForm(db[currMod].find(i=>i.id===currId)); // 重绘以更新选中状态
+            };
+            
+            // 闭包绑定需要在全局暴露，这里简化处理，直接用 HTML string 拼接
+            // 实际点击通过全局代理函数
+            window.tempToggleKey = toggleKey; 
+            
+            let html = `<div class="form-group"><label>功法属性 (点击选择)</label>`;
+            
+            ["来源", "伤害", "效应", "器材"].forEach((cat, idx) => {
+                const keys = idx===0?Keywords.source : idx===1?Keywords.damage : idx===2?Keywords.effect : Keywords.accessory;
+                html += `<div class="keyword-group"><div class="keyword-group-title">${cat}</div>`;
+                keys.forEach(k => {
+                    const active = currentKeys.includes(k) ? 'selected' : '';
+                    html += `<span class="check-btn ${active}" onclick="tempToggleKey('${k}')">${k}</span>`;
+                });
+                html += `</div>`;
+            });
+            html += `<input type="text" class="form-control" style="margin-top:5px;" value="${d.keywords||''}" oninput="updateField('keywords', this.value)" placeholder="自定义，用逗号分隔"></div>`;
+            return html;
+        };
+
+        // 射程构建器
+        const rangeBuilder = () => {
+            window.buildRange = () => {
+                const type = document.getElementById('rb-type').value;
+                const dist = document.getElementById('rb-dist').value;
+                const shape = document.getElementById('rb-shape').value;
+                let res = "";
+                if(type === 'Melee') res = dist === 'Weapon' ? "近战 兵器" : (dist === 'Touch' ? "近战 接触" : `近战 ${dist}`);
+                else if(type === 'Ranged') res = dist === 'Weapon' ? "远程 兵器" : (dist === 'Sight' ? "远程 目视" : `远程 ${dist}`);
+                else if(type === 'Close') res = `近距${shape} ${dist}`;
+                else if(type === 'Area') res = `区域${shape} ${dist} (10格内)`; // 简化
+                
+                updateField('range', res);
+                document.getElementById('m_range_input').value = res;
+            };
+            
+            return `<div class="form-group"><label>攻击范围 (构建器)</label>
+                <div class="range-builder">
+                    <select id="rb-type" onchange="buildRange()">
+                        <option value="Melee">近战</option><option value="Ranged">远程</option><option value="Close">近距(以身为圆)</option><option value="Area">区域(投掷)</option>
+                    </select>
+                    <select id="rb-shape" onchange="buildRange()">
+                        <option value="Burst">爆发(圆形)</option><option value="Blast">冲击(扇形)</option><option value="Wall">气墙</option>
+                    </select>
+                    <input id="rb-dist" type="text" placeholder="距离/兵器" style="width:80px;" oninput="buildRange()">
+                </div>
+                <input type="text" class="form-control" id="m_range_input" value="${d.range||''}" oninput="updateField('range', this.value)" style="margin-top:5px;">
+            </div>`;
+        };
+
+        // 攻防计算器
+        const attackBuilder = () => {
+             window.buildAtt = () => {
+                 const a = document.getElementById('ab-att').value;
+                 const b = document.getElementById('ab-def').value;
+                 updateField('att', a); updateField('def', b);
+             };
+             return `<div class="form-group"><label>较量判定 (攻 vs 守)</label>
+                <div class="row">
+                    <select id="ab-att" class="form-control" onchange="buildAtt()">
+                        <option value="">--攻方--</option>
+                        ${['力量','体质','敏捷','智力','感知','魅力'].map(x=>`<option value="${x}" ${d.att==x?'selected':''}>${x}</option>`).join('')}
+                    </select>
+                    <span style="padding-top:10px">vs</span>
+                    <select id="ab-def" class="form-control" onchange="buildAtt()">
+                        <option value="AC" ${d.def=='AC'?'selected':''}>格挡 (AC)</option>
+                        <option value="Reflex" ${d.def=='Reflex'?'selected':''}>身法 (反射)</option>
+                        <option value="Fortitude" ${d.def=='Fortitude'?'selected':''}>护体 (强韧)</option>
+                        <option value="Will" ${d.def=='Will'?'selected':''}>定力 (意志)</option>
+                    </select>
+                </div>
+             </div>`;
+        };
+
+        if (currMod === 'moves') {
+            h += `<div class="row"><div class="col">${input('招式名称','name')}</div><div class="col">${input('等级','level')}</div></div>`;
+            h += `<div class="row"><div class="col">${input('门派','cls')}</div><div class="col">${select('类型','type',[{v:'basic',t:'外家功夫'},{v:'special',t:'催动内息'},{v:'ultimate',t:'凝神绝技'}])}</div></div>`;
+            h += keywordSelector();
+            h += text('意境描述','flavor');
+            h += `<div class="row"><div class="col">${select('动作','action',[{v:'std',t:'出招'},{v:'mov',t:'身法'},{v:'min',t:'瞬息'},{v:'free',t:'随心'},{v:'react',t:'变招'}])}</div><div class="col">${rangeBuilder()}</div></div>`;
+            h += input('触发 (Trigger)','trigger');
+            h += input('目标','target');
+            h += attackBuilder();
+            h += text('命中 (Hit)','hit');
+            h += text('失手 (Miss)','miss');
+            h += text('效果 (Effect)','effect');
+            h += input('维持 (Sustain)','sustain');
+            h += text('特殊说明','special');
+        } 
+        else if (currMod === 'items') {
+            // 神兵表单
+            h += `<div class="row"><div class="col">${input('宝物名称','name')}</div><div class="col">${input('等级','level')}</div></div>`;
+            h += `<div class="row"><div class="col">${input('部位','slot')}</div><div class="col">${input('价值','price')}</div></div>`;
+            h += input('类型 (如：重刃)','type');
+            h += text('外观','flavor');
+            h += input('淬炼等级','enhance');
+            h += input('暴击效果','crit');
+            h += text('特性 (Property)','prop');
+            h += text('神通 (Power)','power');
+        }
+        else {
+            // 通用表单 (根骨/出身/造诣)
+            let lbl = currMod==='roots'?'根骨':(currMod==='destinies'?'命格':(currMod==='origins'?'出身':'造诣'));
+            h += input(lbl+'名称', 'name');
+            if(currMod === 'feats') h += input('层级', 'tier');
+            h += text('描述', 'flavor');
+            if(currMod === 'roots') { h += input('属性加成','stats'); h += input('基础体征','traits'); h += input('天赋绝学','powerName'); h += text('绝学效果','powerDesc'); }
+            else if(currMod === 'destinies') { h += input('命格特性','traits'); h += text('命格被动','benefit'); }
+            else if(currMod === 'origins') { h += input('相关技艺','skills'); h += text('江湖阅历','benefit'); }
+            else { h += input('修炼门槛','req'); h += text('造诣效果','benefit'); }
+        }
+        f.innerHTML = h;
+    }
+
+    // ================= 渲染：卡片 =================
+    function renderCard(d) {
+        const c = document.getElementById('cardRender');
+        const md = (t) => t ? marked.parseInline(t) : "";
+        
+        let html = '';
+        if(currMod === 'moves') {
+            const t = MoveTypes[d.type]; const a = ActionMap[d.action];
+            const defName = { 'AC':'格挡', 'Reflex':'身法', 'Fortitude':'护体', 'Will':'定力' }[d.def] || '';
+            const attackText = (d.att && d.def) ? `${d.att} vs. ${defName}` : "";
+            
+            html = `<div class="card-header ${t.c}"><span class="card-title">${d.name}</span><span class="card-meta">${d.cls} ${t.t} ${d.level}</span></div>
+            <div class="flavor">${d.flavor}</div>
+            <div class="stat-row"><span><span class="label">功法属性：</span>${d.keywords}</span></div>
+            <div class="stat-row"><span><span class="act-badge ${a.c}">${a.t}</span><span class="label">范围：</span>${d.range}</span></div>
+            ${d.trigger?`<div class="stat-row"><span><span class="label">触发：</span>${md(d.trigger)}</span></div>`:''}
+            ${d.target?`<div class="stat-row"><span><span class="label">目标：</span>${md(d.target)}</span></div>`:''}
+            ${attackText?`<div class="stat-row"><span><span class="label">较量：</span>${attackText}</span></div>`:''}
+            ${d.hit?`<div class="indent-block"><span class="lbl-hit">命中：</span>${md(d.hit)}</div>`:''}
+            ${d.miss?`<div class="indent-block"><span class="lbl-miss">失手：</span>${md(d.miss)}</div>`:''}
+            ${d.effect?`<div class="indent-block"><span class="lbl-effect">效果：</span>${md(d.effect)}</div>`:''}
+            ${d.sustain?`<div class="indent-block"><span class="label">维持：</span>${md(d.sustain)}</div>`:''}
+            ${d.special?`<div class="indent-block"><span class="label">特殊：</span>${md(d.special)}</div>`:''}`;
+        } 
+        else if (currMod === 'items') {
+             html = `<div class="card-header bg-gold"><span class="card-title">${d.name}</span><span class="card-meta">等级 ${d.level}</span></div>
+             <div class="flavor">${d.flavor}</div>
+             <div class="stat-row" style="justify-content:space-between"><span>${d.slot}</span><span>${d.price}</span></div>
+             <div class="stat-row"><span><span class="label">兵甲类型：</span>${d.type}</span></div>
+             <div class="stat-row"><span><span class="label">淬炼：</span>${d.enhance}</span></div>
+             <div class="stat-row"><span><span class="label">暴击：</span>${d.crit}</span></div>
+             ${d.prop ? `<div class="indent-block" style="border-top:1px dashed #ccc;margin-top:5px;"><span class="label">特性：</span>${md(d.prop)}</div>` : ''}
+             ${d.power ? `<div class="indent-block" style="border-top:1px dashed #ccc;margin-top:5px;"><span class="label">神通：</span>${md(d.power)}</div>` : ''}`;
+        }
+        else {
+             let color = currMod==='feats' ? 'bg-gray' : 'bg-green';
+             let meta = Config[currMod].title.slice(0,4);
+             if(currMod === 'feats') meta = d.tier;
+             
+             html = `<div class="card-header ${color}"><span class="card-title">${d.name}</span><span class="card-meta">${meta}</span></div>
+             <div class="flavor">${d.flavor}</div>
+             ${d.stats ? `<div class="stat-row"><span><span class="label">属性加成：</span>${d.stats}</span></div>` : ''}
+             ${d.traits ? `<div class="stat-row"><span><span class="label">特征：</span>${d.traits}</span></div>` : ''}
+             ${d.skills ? `<div class="stat-row"><span><span class="label">相关技艺：</span>${d.skills}</span></div>` : ''}
+             ${d.req ? `<div class="stat-row"><span><span class="label">修炼门槛：</span>${d.req}</span></div>` : ''}
+             ${d.powerName ? `<div class="stat-row" style="border-top:1px dashed #ccc;margin-top:5px;padding-top:5px;"><span class="label">${d.powerName}</span></div>` : ''}
+             ${d.powerDesc ? `<div class="indent-block">${md(d.powerDesc)}</div>` : ''}
+             ${d.benefit ? `<div class="indent-block" style="white-space: pre-wrap;">${md(d.benefit)}</div>` : ''}`;
+        }
+        c.innerHTML = html;
+    }
+
+    // ================= 列表与存取 =================
+    function renderList(filter = '') {
+        const list = document.getElementById('itemList');
+        list.innerHTML = db[currMod]
+            .filter(i => i.name.includes(filter))
+            .map(i => `
+            <div class="list-item ${i.id===currId?'active':''}" onclick="loadItem('${i.id}')">
+                <div><span class="item-main">${i.name}</span><div class="item-sub">${i.cls||i.type||i.tier||'Lv'+i.level}</div></div>
+                <span class="del-btn" onclick="deleteItem(event, '${i.id}')">×</span>
+            </div>`).join('');
+    }
+
+    function deleteItem(e, id) {
+        e.stopPropagation();
+        if(!confirm("确认删除？")) return;
+        db[currMod] = db[currMod].filter(i => i.id !== id);
+        saveData();
+        renderList();
+        if(db[currMod].length > 0) loadItem(db[currMod][0].id); else createNew();
+    }
+
+    function saveData() { localStorage.setItem(Config[currMod].key, JSON.stringify(db[currMod])); }
+    
+    function exportData() {
+        const blob = new Blob([JSON.stringify(db, null, 2)], {type: "application/json"});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "中武江湖_全库.json"; a.click();
+    }
+    
+    function importData(e) {
+        const r = new FileReader();
+        r.onload = (evt) => {
+            try {
+                const data = JSON.parse(evt.target.result);
+                for(let k in data) { if(db[k]) { db[k] = db[k].concat(data[k]); saveData(); } }
+                renderList(); alert("导入成功！");
+            } catch(err) { alert("文件错误"); }
+        };
+        r.readAsText(e.target.files[0]);
+    }
+
+    function downloadImage() {
+        html2canvas(document.getElementById('cardRender'), {scale:2, backgroundColor:null}).then(c => {
+            const a = document.createElement('a'); a.download = `${db[currMod].find(i=>i.id===currId).name}.png`; a.href = c.toDataURL(); a.click();
+        });
+    }
+
+    function copyImage() {
+        html2canvas(document.getElementById('cardRender'), {scale:2, backgroundColor:null}).then(c => {
+            c.toBlob(b => navigator.clipboard.write([new ClipboardItem({"image/png": b})]).then(()=>alert("复制成功")));
+        });
+    }
+</script>
+</body>
+</html>
