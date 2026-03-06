@@ -99,6 +99,13 @@ export const RangeBuilder: React.FC<{ value: string; onChange: (val: string) => 
     const [shape, setShape] = React.useState('Burst');
     const [dist, setDist] = React.useState('');
 
+    // 当切换条目时，外部 value 改变，重置内部状态避免视觉错乱
+    React.useEffect(() => {
+        setType('Melee');
+        setShape('Burst');
+        setDist('');
+    }, [value]);
+
     const buildRange = (t: string, s: string, d: string) => {
         let res = "";
         if (t === 'Melee') res = d === 'Weapon' ? "近战 兵器" : (d === 'Touch' ? "近战 接触" : `近战 ${d}`);
@@ -145,6 +152,7 @@ export const RangeBuilder: React.FC<{ value: string; onChange: (val: string) => 
 }
 
 
+
 export const AttackBuilder: React.FC<{ att: string; def: string; onUpdate: (a: string, d: string) => void }> = ({ att, def, onUpdate }) => {
     return (
         <div className="form-group">
@@ -189,7 +197,7 @@ export const TraitListEditor: React.FC<{
             <label>{label}</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {safeValue.map((t, i) => (
-                    <div key={i} style={{ border: '1px solid #ddd', padding: '8px', borderRadius: '4px', background: '#f9f9f9', position: 'relative' }}>
+                    <div key={`${t.name}-${i}`} style={{ border: '1px solid #ddd', padding: '8px', borderRadius: '4px', background: '#f9f9f9', position: 'relative' }}>
                         <div className="row" style={{ marginBottom: '4px' }}>
                             <div className="col">
                                 <input

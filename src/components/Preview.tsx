@@ -4,7 +4,7 @@ import { marked } from 'marked';
 import html2canvas from 'html2canvas';
 import type { ModuleType } from '../constants';
 import { Config, ActionMap, Defenses } from '../constants';
-import type { Item, MoveItem, EquipmentItem, GeneralItem } from '../types';
+import type { Item, MoveItem, EquipmentItem, GeneralItem, SchoolItem, RootItem, OriginItem, DestinyItem } from '../types';
 
 interface PreviewProps {
     module: ModuleType;
@@ -46,36 +46,6 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
     if (module === 'moves') {
         const d = item as MoveItem;
 
-        // Colors mapping:
-        // basic -> green ? The original code:
-        // t = MoveTypes[d.type] -> but MoveTypes wasn't defined in the snippet I saw? 
-        // Wait, looking at original HTML:
-        // const Config = { moves: { ... color: "bg-green" } }
-        // renderCard: let html = ...
-        // line 376: const t = MoveTypes[d.type];
-        // Wait, where is `MoveTypes` defined in original HTML?
-        // I missed it in my read?
-        // Let's look at `view_file` output again.
-        // I don't see `const MoveTypes = ...`.
-        // Line 376 uses it. Maybe it was defined earlier or I missed it.
-        // Actually, looking at lines 331: select('类型','type',[{v:'basic',t:'外家功夫'},{v:'special',t:'催动内息'},{v:'ultimate',t:'凝神绝技'}])
-        // It seems `MoveTypes` might be { basic: {t:'...'}, ... } but it is missing from the global scope in the file I read?
-        // Ah, maybe I missed it in the `Config` block or similar.
-        // Line 376: `const t = MoveTypes[d.type];`
-        // If it's missing, the HTML `renderCard` would crash.
-        // But the HTML works (presumably).
-        // Let's assume the mapping from the select options.
-        // And colors:
-        // line 380: `<div class="card-header ${t.c}">`
-        // Wait, `t` has `c` property?
-        // If `MoveTypes` is missing, maybe it's `Config[module]` but that's generic.
-        // Let's assume standard colors:
-        // basic: green (At-Will)
-        // special: red (Encounter)
-        // ultimate: black (Daily)
-        // matches 4e.
-        // line 16-18: --c-atwill: #1f4e3d (green), --c-encounter (red), --c-daily (black).
-        // So I'll replicate this logic.
 
         const typeInfo = {
             basic: { t: '外家功夫', c: 'bg-green' },
@@ -174,7 +144,7 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
                 {(d.features || []).length > 0 && (
                     <div style={{ marginTop: '15px', borderTop: '2px solid #ccc', paddingTop: '10px' }}>
                         <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '10px', color: '#c0392b' }}>门派特技</div>
-                        {d.features.map((f, i) => (
+                        {d.features.map((f: { name: string; desc: string }, i: number) => (
                             <div key={i} style={{ marginBottom: '12px' }}>
                                 <div style={{ fontWeight: 'bold' }}>{f.name}:</div>
                                 <div className="indent-block">{md(f.desc)}</div>
@@ -217,7 +187,7 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
 
                 {(d.traits || []).length > 0 && (
                     <div style={{ marginTop: '10px', borderTop: '1px dashed #ccc', paddingTop: '5px' }}>
-                        {d.traits.map((t, i) => (
+                        {d.traits.map((t: { name: string; desc: string }, i: number) => (
                             <div key={i} style={{ marginBottom: '8px' }}>
                                 <span className="label">{t.name}：</span>
                                 <span>{md(t.desc)}</span>

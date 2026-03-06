@@ -23,7 +23,7 @@ export const ICONS: Record<ModuleType, string> = {
     moves: '⚔️',
     roots: '🧬',
     destinies: '🔮',
-    origins: '🏯',
+    origins: '🏘️',
     feats: '🧘',
     items: '🗡️'
 };

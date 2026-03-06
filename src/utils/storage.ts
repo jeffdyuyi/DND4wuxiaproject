@@ -9,5 +9,11 @@ export function getStorage(key: string) {
 }
 
 export function setStorage(key: string, data: any) {
-    localStorage.setItem(key, JSON.stringify(data));
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+            alert('⚠️ 本地存储空间已满！\n请先使用"导出"功能备份数据，再删除部分条目以释放空间。');
+        }
+    }
 }

@@ -6,6 +6,7 @@ import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
 import { HomePage } from './components/HomePage';
 import { DisclaimerModal } from './components/DisclaimerModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import type { ModuleType } from './constants';
 import { Config } from './constants';
 import type { Item, DB } from './types';
@@ -29,6 +30,10 @@ function App() {
   const [db, setDb] = useState<DB>(INITIAL_DB);
   const [currentItemId, setCurrentItemId] = useState<string | null>(null);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
+  const [confirmState, setConfirmState] = useState<{ show: boolean; itemId: string | null }>({
+    show: false,
+    itemId: null,
+  });
 
   // Initialize from storage on mount
   useEffect(() => {
@@ -70,12 +75,22 @@ function App() {
   };
 
   const deleteItem = (id: string) => {
-    if (!confirm("确认删除？")) return;
+    setConfirmState({ show: true, itemId: id });
+  };
+
+  const confirmDelete = () => {
+    const id = confirmState.itemId;
+    if (!id) return;
+    setConfirmState({ show: false, itemId: null });
     const newModList = db[module].filter(i => i.id !== id);
     const newDb = { ...db, [module]: newModList };
     saveDb(newDb, module);
     if (newModList.length > 0) setCurrentItemId(newModList[0].id);
     else createNew(module, newDb);
+  };
+
+  const cancelDelete = () => {
+    setConfirmState({ show: false, itemId: null });
   };
 
   const updateItem = (item: Item) => {
@@ -112,18 +127,17 @@ function App() {
       try {
         const data = JSON.parse(e.target?.result as string);
         const newDb = { ...db };
-        for (let k in data) {
-          if (k in newDb) {
-            // Concat and update storage
-            // @ts-ignore
-            newDb[k as ModuleType] = [...newDb[k as ModuleType], ...data[k]];
-            setStorage(Config[k as ModuleType].key, newDb[k as ModuleType]);
+        for (const k in data) {
+          const mod = k as ModuleType;
+          if (mod in newDb && Array.isArray(data[k])) {
+            newDb[mod] = [...newDb[mod], ...(data[k] as Item[])];
+            setStorage(Config[mod].key, newDb[mod]);
           }
         }
         setDb(newDb);
         alert("导入成功！");
       } catch (err) {
-        alert("文件错误");
+        alert("文件格式错误，请确认为有效的 JSON 导出文件。");
       }
     };
     reader.readAsText(file);
@@ -142,6 +156,13 @@ function App() {
   return (
     <div className="app-container">
       {showDisclaimer && <DisclaimerModal onClose={() => setShowDisclaimer(false)} />}
+      {confirmState.show && (
+        <ConfirmModal
+          message="确认删除此条目？此操作无法撤销。"
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
+      )}
       <Sidebar
         currentModule={module}
         viewMode={viewMode}

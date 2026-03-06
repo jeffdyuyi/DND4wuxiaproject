@@ -16,11 +16,15 @@ export const HomePage: React.FC<HomePageProps> = ({ db, onNavigate }) => {
     const searchResults = React.useMemo(() => {
         if (!searchTerm) return [];
         const results: { module: ModuleType; item: Item }[] = [];
+        const lower = searchTerm.toLowerCase();
+        const searchFields = ['name', 'keywords', 'cls', 'flavor', 'description'] as const;
         (Object.keys(Config) as ModuleType[]).forEach(mod => {
             db[mod].forEach(item => {
-                if (item.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-                    results.push({ module: mod, item });
-                }
+                const matched = searchFields.some(field => {
+                    const val = (item as Record<string, unknown>)[field];
+                    return typeof val === 'string' && val.toLowerCase().includes(lower);
+                });
+                if (matched) results.push({ module: mod, item });
             });
         });
         return results;
