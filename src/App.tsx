@@ -93,11 +93,11 @@ function App() {
       {notice && <div className="feedback" role="status">{notice}<button className="btn" onClick={() => setNotice('')}>关闭</button></div>}
       <main className="workspace-content">
         {viewMode === 'home' ? <HomePage db={db} onNavigate={selectModule} /> : <>
-          <ListPanel key={module} items={db[module]} currentItemId={currentItemId} onSelect={setCurrentItemId}
+          <ListPanel key={`list:${module}`} items={db[module]} currentItemId={currentItemId} onSelect={setCurrentItemId}
             onCreate={createNew} onDelete={id => setConfirmation({ kind: 'delete', module, id })}
             onDuplicate={duplicateItem} onExportItems={exportItems} />
-          <Editor key={currentItemId ?? 'empty'} module={module} item={currentItem} onChange={updateItem} />
-          <Preview key={currentItemId ?? 'empty'} module={module} item={currentItem} />
+          <Editor key={`editor:${module}:${currentItemId ?? 'empty'}`} module={module} item={currentItem} onChange={updateItem} />
+          <Preview key={`preview:${module}:${currentItemId ?? 'empty'}`} module={module} item={currentItem} />
         </>}
       </main>
     </div>

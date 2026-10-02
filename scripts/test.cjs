@@ -24,6 +24,59 @@ function storage(initial = {}) {
     return { values, getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
 }
 
+test('navigation gives sibling panels distinct identities across populated and empty modules', () => {
+    const libraryModule = load('hooks/useLibrary.ts');
+    const originalLibrary = libraryModule.useLibrary;
+    const originalState = React.useState;
+    const db = emptyDB();
+    db.schools = [createResource('schools')];
+    const states = [];
+    let cursor = 0;
+    React.useState = initial => {
+        const index = cursor++;
+        if (!(index in states)) states[index] = initial;
+        return [states[index], value => { states[index] = value; }];
+    };
+    libraryModule.useLibrary = () => ({ db, issues: [], recovery: {}, blocked: false, dirty: false, error: '' });
+    try {
+        const App = load('App.tsx').default;
+        const { Sidebar } = load('components/Sidebar.tsx');
+        const { Editor } = load('components/Editor.tsx');
+        const { Preview } = load('components/Preview.tsx');
+        const find = (element, predicate) => {
+            if (!React.isValidElement(element)) return undefined;
+            if (predicate(element)) return element;
+            for (const child of React.Children.toArray(element.props.children)) {
+                const result = find(child, predicate);
+                if (result) return result;
+            }
+        };
+        const render = () => { cursor = 0; return App(); };
+        let tree = render();
+        for (const module of ['schools', 'moves', 'roots', 'origins', 'paths', 'schools', 'moves']) {
+            find(tree, element => element.type === Sidebar).props.onSwitchModule(module);
+            tree = render();
+            const main = find(tree, element => element.type === 'main');
+            const panels = main.props.children.props.children;
+            assert.equal(panels.length, 3);
+            assert.equal(new Set(panels.map(panel => panel.key)).size, 3, 'sibling keys must be unique');
+            const editor = panels.find(panel => panel.type === Editor);
+            const preview = panels.find(panel => panel.type === Preview);
+            assert.equal(editor.props.module, module);
+            assert.equal(editor.props.item, db[module][0] ?? null);
+            assert.equal(preview.props.item, editor.props.item);
+        }
+        find(tree, element => element.type === Sidebar).props.onGoHome();
+        tree = render();
+        assert.equal(find(tree, element => element.type === Editor), undefined);
+        assert.equal(find(tree, element => element.type === Preview), undefined);
+        assert.equal(db.moves.length, 0, 'navigation must not create placeholder resources');
+    } finally {
+        React.useState = originalState;
+        libraryModule.useLibrary = originalLibrary;
+    }
+});
+
 test('denied browser storage getter reports failure without crashing', () => {
     const previous = global.window;
     global.window = Object.defineProperty({}, 'localStorage', { get() { throw new Error('access denied'); } });
