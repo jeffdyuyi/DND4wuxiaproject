@@ -4,6 +4,10 @@
 .workspace { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .workspace-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 16px; background: #fdfbf7; border-bottom: 1px solid var(--ui-border); }
 .workspace-toolbar strong { margin-right: auto; }
+.workspace-brand { display: flex; gap: 12px; align-items: center; margin-right: auto; }
+.brand-button { border: 0; border-radius: 4px; background: transparent; padding: 4px 0; color: #263238; font: inherit; font-weight: bold; cursor: pointer; }
+.brand-button:hover { color: #8a2424; }
+.workspace-module { color: #66747d; font-size: 0.85em; }
 .workspace-content { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .save-status { color: #25643b; font-size: 0.85em; }
 .save-warning { color: #9d3f19; font-weight: bold; }

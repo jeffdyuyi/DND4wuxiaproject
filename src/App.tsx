@@ -74,7 +74,10 @@ function App() {
     <Sidebar currentModule={module} viewMode={viewMode} onSwitchModule={selectModule} onGoHome={() => setViewMode('home')} />
     <div className="workspace">
       <header className="workspace-toolbar">
-        <strong>{viewMode === 'home' ? '吾侠' : Config[module].title}</strong>
+        <div className="workspace-brand">
+          <button type="button" className="brand-button" aria-label="吾侠：查看作者信息" aria-haspopup="dialog" onClick={() => setShowDisclaimer(true)}>吾侠</button>
+          {viewMode !== 'home' && <span className="workspace-module">{Config[module].title}</span>}
+        </div>
         <span role="status" className={library.blocked || library.dirty ? 'save-status save-warning' : 'save-status'}>
           {library.blocked ? '保存已暂停' : library.dirty ? '有未保存修改' : '本地数据就绪'}
         </span>

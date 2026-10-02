@@ -15,6 +15,11 @@
 .module-tag { display: inline-block; margin-left: 10px; padding: 2px 6px; border-radius: 4px; background: #ecf0f1; color: #66747d; font-size: 12px; }
 .welcome-content { text-align: center; line-height: 1.6; }
 .welcome-note { color: #66747d; }
+.author-contacts { text-align: left; padding: 16px; border: 1px solid var(--ui-border); border-radius: 6px; background: #fff; overflow-wrap: anywhere; }
+.author-contacts dt { font-weight: bold; font-size: 0.9em; }
+.author-contacts dd { margin: 2px 0 12px; }
+.author-contacts dd:last-child { margin-bottom: 0; }
+.author-contacts a { color: #1565c0; text-underline-offset: 3px; }
 .welcome-disclaimer { padding: 16px; border-radius: 8px; background: #fee2e2; color: #a52c2c; font-weight: bold; }
 @media (max-width: 640px) {
     .home-page { padding: 16px; }
