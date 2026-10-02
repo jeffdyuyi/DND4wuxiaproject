@@ -2,7 +2,6 @@
 import React, { useRef, useState } from 'react';
 import { RichText } from './RichText';
 import { PowerCard } from './PowerCard';
-import html2canvas from 'html2canvas';
 import type { ModuleType } from '../constants';
 import { Config, ActionMap } from '../constants';
 import { ProgressionCard } from './Progression';
@@ -29,11 +28,13 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
     const selectedFormat = isProgression ? resolveCardFormat(format, powers) : 'full';
 
     const exportImage = async (copy = false) => {
-        if (!cardRef.current) return;
+        const card = cardRef.current;
+        if (!card) return;
         setExporting(true); setFeedback('');
         try {
+            const { default: html2canvas } = await import('html2canvas');
             await document.fonts.ready;
-            const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: null,
+            const canvas = await html2canvas(card, { scale: 2, backgroundColor: null,
                 onclone: doc => { doc.querySelectorAll<HTMLElement>('[data-preview-scale]').forEach(element => { element.style.transform = 'none'; }); }
             });
             const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('图片过长或无法生成')), 'image/png'));
@@ -191,7 +192,7 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
                 <div className="flavor">{d.flavor}</div>
                 <div className="stat-row">
                     <span>
-                        {action.t && <span className={`act-badge ${action.c}`}>{action.t}</span>}
+                        {action.t && <span className={`act-badge ${action.c}`}>{d.actionLabel ?? action.t}</span>}
                         {d.range && <span><span className="label">范围：</span>{d.range}</span>}
                     </span>
                 </div>

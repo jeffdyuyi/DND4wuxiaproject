@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 // Compile TS in memory: never touch browser data or generated repository files.
 for (const extension of ['.ts', '.tsx']) require.extensions[extension] = (module, filename) => {
-    const result = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } });
+    const result = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } });
     module._compile(result.outputText, filename);
 };
 const load = file => require(path.join(__dirname, '..', 'src', file));
@@ -19,10 +19,96 @@ const { renderToStaticMarkup } = require('react-dom/server');
 const { RichText } = load('components/RichText.tsx');
 const { PowerCard } = load('components/PowerCard.tsx');
 const { ProgressionCard } = load('components/Progression.tsx');
+const { defaultTerminology, validateTerminology, addTerms, mergeTerminology } = load('utils/terminology.ts');
+const { readLibraryArchive } = load('utils/archive.ts');
+const { TermSelect } = load('components/TermControls.tsx');
+const { TerminologyContext } = load('hooks/TerminologyContext.tsx');
 function storage(initial = {}) {
     const values = new Map(Object.entries(initial));
     return { values, getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
 }
+
+test('reference vocabulary has valid categories, preserved wuxia words and stable rule codes', () => {
+    const terms = validateTerminology(defaultTerminology());
+    assert(terms.entries.some(term => term.category === 'damage' && term.label === '火焰'));
+    assert(terms.entries.some(term => term.category === 'damage' && term.label === '罡劲'));
+    assert(terms.entries.some(term => term.category === 'weapon' && term.label === '长剑'));
+    assert(terms.entries.some(term => term.category === 'status' && term.label === '倒地'));
+    assert.equal(terms.entries.find(term => term.category === 'defense' && term.label === '格挡').value, 'AC');
+    const extended = addTerms(terms, 'damage', ' 焰劲，焰劲,火焰；雷劲 ');
+    assert.equal(extended.entries.length, terms.entries.length + 2);
+    assert.equal(addTerms(extended, 'damage', '焰劲'), extended);
+    assert.equal(addTerms(extended, 'usage', '无限'), extended);
+});
+
+test('vocabulary backup, standalone import and legacy storage preserve resources', () => {
+    const db = emptyDB(); db.moves = [createResource('moves')];
+    const terms = addTerms(defaultTerminology(), 'weapon', '青玉剑');
+    terms.autoCollect = false;
+    const envelope = makeArchive(db, terms);
+    const restored = readLibraryArchive(JSON.parse(JSON.stringify(envelope)));
+    assert.deepEqual(restored.data, db); assert.deepEqual(restored.terminology, terms);
+    assert.deepEqual(readLibraryArchive(makeArchive({}, terms)).data, {});
+    const port = storage(); assert(saveLibrary(port, db, terms).ok);
+    assert.deepEqual(loadLibrary(port).terminology, terms);
+    const old = loadLibrary(storage({ [STORAGE_KEY]: JSON.stringify(makeArchive(db)) }));
+    assert.deepEqual(old.db, db); assert.deepEqual(old.terminology, defaultTerminology());
+    assert.throws(() => readLibraryArchive({ ...envelope, terminology: { version: 99 } }), /术语/);
+    const corrupt = loadLibrary(storage({ [STORAGE_KEY]: JSON.stringify({ ...envelope, terminology: { version: 99 } }) }));
+    assert.equal(corrupt.issues.length, 1); assert.equal(corrupt.db.moves[0].id, db.moves[0].id);
+    assert(corrupt.recovery[STORAGE_KEY].includes('99'));
+});
+
+test('term import retains local renames and card snapshots survive vocabulary changes', () => {
+    const local = defaultTerminology();
+    local.entries.find(term => term.value === 'AC').label = '金钟罩';
+    const incoming = addTerms(defaultTerminology(), 'damage', '焰劲');
+    const merged = mergeTerminology(local, incoming);
+    assert.equal(merged.entries.find(term => term.value === 'AC').label, '金钟罩');
+    assert(merged.entries.some(term => term.label === '焰劲'));
+    const card = createResource('moves'); card.att = '力量'; card.def = 'AC'; card.defLabel = '旧格挡'; card.actionLabel = '旧出招';
+    const restored = readArchive(makeArchive({ moves: [card] })).moves[0];
+    const html = renderToStaticMarkup(React.createElement(PowerCard, { item: restored }));
+    assert(html.includes('旧格挡')); assert(html.includes('旧出招')); assert(!html.includes('金钟罩'));
+    assert.throws(() => validateTerminology({ ...local, entries: [...local.entries, local.entries[0]] }), /重复/);
+});
+
+test('renamed and hidden suggestions retain legacy selection and authored labels', () => {
+    const terms = defaultTerminology();
+    const defense = terms.entries.find(term => term.value === 'AC'); defense.label = '金钟罩';
+    const render = props => renderToStaticMarkup(React.createElement(TerminologyContext.Provider,
+        { value: { terminology: terms, update: () => {}, collect: () => {} } }, React.createElement(TermSelect, props)));
+    const legacy = render({ label: '防御', category: 'defense', value: 'AC', onChange: () => {} });
+    assert(legacy.includes('格挡（卡片原有名称）')); assert(legacy.includes('金钟罩'));
+    defense.hidden = true;
+    const snapshot = render({ label: '防御', category: 'defense', value: 'AC', snapshot: '旧名称', onChange: () => {} });
+    assert(snapshot.includes('旧名称（卡片原有名称）')); assert(!snapshot.includes('金钟罩'));
+    const custom = render({ label: '防御', category: 'defense', value: '新防御', onChange: () => {} });
+    assert(custom.includes('新防御（卡片原有值）'));
+});
+
+test('collecting a term in the same event does not discard the latest resource draft', () => {
+    const originals = { window: global.window, state: React.useState, ref: React.useRef, effect: React.useEffect };
+    const port = storage(); global.window = { localStorage: port };
+    React.useState = initial => [typeof initial === 'function' ? initial() : initial, () => {}];
+    React.useRef = initial => ({ current: initial }); React.useEffect = () => {};
+    try {
+        const library = load('hooks/useLibrary.ts').useLibrary();
+        const db = emptyDB(); const move = createResource('moves'); move.hit = '刚输入的新规则'; db.moves = [move];
+        library.update(db); library.collect('damage', '焰劲');
+        const saved = loadLibrary(port);
+        assert.equal(saved.db.moves[0].hit, '刚输入的新规则');
+        assert(saved.terminology.entries.some(term => term.label === '焰劲'));
+        library.updateTerminology({ ...saved.terminology, autoCollect: false });
+        library.collect('damage', '不自动记录');
+        assert(!loadLibrary(port).terminology.entries.some(term => term.label === '不自动记录'));
+        library.collect('damage', '手动记录', true);
+        assert(loadLibrary(port).terminology.entries.some(term => term.label === '手动记录'));
+    } finally {
+        if (originals.window === undefined) delete global.window; else global.window = originals.window;
+        React.useState = originals.state; React.useRef = originals.ref; React.useEffect = originals.effect;
+    }
+});
 
 test('navigation gives sibling panels distinct identities across populated and empty modules', () => {
     const libraryModule = load('hooks/useLibrary.ts');

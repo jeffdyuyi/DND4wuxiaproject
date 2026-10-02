@@ -3,6 +3,7 @@ import { Config } from '../constants';
 import type { DB } from '../types';
 import { emptyDB, modules, withItems, duplicateResource } from './resources';
 import { readArchive, makeArchive, normalizeResource } from './archive';
+import { defaultTerminology, validateTerminology, type Terminology } from './terminology';
 
 export const STORAGE_KEY = 'wuxia_resources_v1';
 export interface StoragePort { getItem(key: string): string | null; setItem(key: string, value: string): void; }
@@ -11,17 +12,19 @@ export const browserStorage: StoragePort = {
     getItem: key => window.localStorage.getItem(key),
     setItem: (key, value) => window.localStorage.setItem(key, value),
 };
-export interface LibraryLoad { db: DB; recovery: Record<string, string>; issues: string[]; }
+export interface LibraryLoad { db: DB; terminology: Terminology; recovery: Record<string, string>; issues: string[]; }
 
 export function loadLibrary(storage: StoragePort): LibraryLoad {
-    const result: LibraryLoad = { db: emptyDB(), recovery: {}, issues: [] };
+    const result: LibraryLoad = { db: emptyDB(), terminology: defaultTerminology(), recovery: {}, issues: [] };
     let archive: string | null;
     try { archive = storage.getItem(STORAGE_KEY); }
     catch { result.issues.push('无法读取浏览器存储，请检查浏览器权限'); return result; }
     if (archive !== null) {
         result.recovery[STORAGE_KEY] = archive;
         try {
-            result.db = { ...emptyDB(), ...readArchive(JSON.parse(archive)) };
+            const parsed = JSON.parse(archive);
+            result.db = { ...emptyDB(), ...readArchive(parsed) };
+            result.terminology = parsed.terminology === undefined ? defaultTerminology() : validateTerminology(parsed.terminology);
             for (const module of modules) {
                 const ids = new Set<string>();
                 result.db = withItems(result.db, module, result.db[module].map(item => {
@@ -53,8 +56,8 @@ export function loadLibrary(storage: StoragePort): LibraryLoad {
     if (!result.issues.length) result.recovery = {};
     return result;
 }
-export function saveLibrary(storage: StoragePort, db: DB): { ok: true } | { ok: false; error: string } {
-    try { storage.setItem(STORAGE_KEY, JSON.stringify(makeArchive(db))); return { ok: true }; }
+export function saveLibrary(storage: StoragePort, db: DB, terminology?: Terminology): { ok: true } | { ok: false; error: string } {
+    try { storage.setItem(STORAGE_KEY, JSON.stringify(makeArchive(db, terminology))); return { ok: true }; }
     catch (error) {
         const name = error && typeof error === 'object' && 'name' in error ? error.name : '';
         return { ok: false, error: name === 'QuotaExceededError' ? '存储空间已满，修改尚未保存。请导出备份后释放空间。' : '浏览器存储不可用，修改尚未保存。请导出备份或重试。' };

@@ -7,11 +7,14 @@ import { HomePage } from './components/HomePage';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ImportDialog } from './components/ImportDialog';
+import { TerminologyDialog } from './components/TerminologyDialog';
+import { TerminologyContext } from './hooks/TerminologyContext';
+import { mergeTerminology, type Terminology } from './utils/terminology';
 import { Config, type ModuleType } from './constants';
 import type { DB, Item } from './types';
 import { useLibrary } from './hooks/useLibrary';
 import { createResource, duplicateResource, withItems } from './utils/resources';
-import { downloadJSON, makeArchive, mergeResources, readArchive, type ImportMode } from './utils/archive';
+import { downloadJSON, makeArchive, mergeResources, readLibraryArchive, type ImportMode } from './utils/archive';
 
 type Confirmation = { kind: 'delete'; module: ModuleType; id: string } | { kind: 'recovery' } | null;
 
@@ -23,7 +26,8 @@ function App() {
   const [currentItemId, setCurrentItemId] = useState<string | null>(null);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
-  const [incoming, setIncoming] = useState<Partial<DB> | null>(null);
+  const [incoming, setIncoming] = useState<{ data: Partial<DB>; terminology?: Terminology } | null>(null);
+  const [showTerms, setShowTerms] = useState(false);
   const [notice, setNotice] = useState('');
   const [recoveryExported, setRecoveryExported] = useState(false);
 
@@ -51,26 +55,28 @@ function App() {
     setConfirmation(null);
   };
   const handleImport = async (file: File) => {
-    try { setIncoming(readArchive(JSON.parse(await file.text()))); setNotice(''); }
+    try { setIncoming(readLibraryArchive(JSON.parse(await file.text()))); setNotice(''); }
     catch (error) { setNotice(`导入未执行：${error instanceof Error ? error.message : '文件无法读取'}`); }
   };
   const applyImport = (mode: ImportMode) => {
     if (!incoming) return;
-    const result = mergeResources(db, incoming, mode);
-    library.update(result.db); setIncoming(null);
+    const result = mergeResources(db, incoming.data, mode);
+    const terms = incoming.terminology ? mergeTerminology(library.terminology, incoming.terminology) : library.terminology;
+    library.update(result.db, terms); setIncoming(null);
     setNotice(`导入已处理：新增 ${result.added}，覆盖 ${result.replaced}，跳过 ${result.skipped}。保存结果见上方状态。`);
   };
-  const exportLibrary = () => downloadJSON(makeArchive(db), '吾侠_全库.json');
+  const exportLibrary = () => downloadJSON(makeArchive(db, library.terminology), '吾侠_全库.json');
   const exportItems = (ids: string[]) => downloadJSON(makeArchive({ [module]: db[module].filter(item => ids.includes(item.id)) }), `吾侠_${Config[module].title}_资源.json`);
   const currentItem = db[module].find(item => item.id === currentItemId) ?? null;
 
-  return <div className="app-container">
+  return <TerminologyContext.Provider value={{ terminology: library.terminology, update: library.updateTerminology, collect: library.collect }}><div className="app-container">
+    {showTerms && <TerminologyDialog onClose={() => setShowTerms(false)} />}
     {showDisclaimer && <DisclaimerModal onClose={() => setShowDisclaimer(false)} />}
     {confirmation && <ConfirmModal
       message={confirmation.kind === 'delete' ? '确认删除此条目？删除后可以从之前导出的备份恢复。' : '恢复原文已导出。继续将用当前可用资源建立新的本地存档；请妥善保留恢复文件。'}
       confirmLabel={confirmation.kind === 'delete' ? '确认删除' : '继续保存'}
       onConfirm={confirm} onCancel={() => setConfirmation(null)} />}
-    {incoming && <ImportDialog db={db} incoming={incoming} onConfirm={applyImport} onCancel={() => setIncoming(null)} />}
+    {incoming && <ImportDialog db={db} incoming={incoming.data} terminology={incoming.terminology} onConfirm={applyImport} onCancel={() => setIncoming(null)} />}
     <Sidebar currentModule={module} viewMode={viewMode} onSwitchModule={selectModule} onGoHome={() => setViewMode('home')} />
     <div className="workspace">
       <header className="workspace-toolbar">
@@ -82,6 +88,7 @@ function App() {
           {library.blocked ? '保存已暂停' : library.dirty ? '有未保存修改' : '本地数据就绪'}
         </span>
         <button type="button" className="btn" onClick={exportLibrary}>备份全库</button>
+        <button type="button" className="btn" onClick={() => setShowTerms(true)}>术语库</button>
         <label className="btn import-button">导入 JSON<input aria-label="导入资源 JSON" type="file" accept=".json,application/json" onChange={event => {
           const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file);
         }} /></label>
@@ -104,6 +111,6 @@ function App() {
         </>}
       </main>
     </div>
-  </div>;
+  </div></TerminologyContext.Provider>;
 }
 export default App;

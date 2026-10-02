@@ -1,10 +1,10 @@
 
 import React from 'react';
 import type { ModuleType } from '../constants';
-import { ActionMap } from '../constants';
+import { TermInput, TermSelect, RuleText } from './TermControls';
 import { PowerEditor } from './PowerEditor';
 import type { Item, MoveItem, EquipmentItem, GeneralItem, SchoolItem, RootItem, OriginItem, DestinyItem } from '../types';
-import { Input, Text, Select, RangeBuilder, TraitListEditor } from './FormHelpers';
+import { Input, Text, RangeBuilder, TraitListEditor } from './FormHelpers';
 import { ProgressionEditor } from './Progression';
 import type { ProgressionItem } from '../types';
 
@@ -37,15 +37,15 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                         <div className="col"><Input label="等级" value={d.level} onChange={(v) => /^\d*$/.test(v) && update('level', Number(v))} /></div>
                     </div>
                     <div className="row">
-                        <div className="col"><Input label="部位" value={d.slot} onChange={(v) => update('slot', v)} /></div>
+                        <div className="col"><TermInput label="部位" value={d.slot} categories={['slot']} onChange={(v) => update('slot', v)} /></div>
                         <div className="col"><Input label="价值" value={d.price} onChange={(v) => update('price', v)} /></div>
                     </div>
-                    <Input label="类型 (如：重刃)" value={d.type} onChange={(v) => update('type', v)} />
+                    <TermInput label="类型 (如：重刃)" value={d.type} categories={['weaponGroup', 'weapon', 'implement', 'armor']} collectAs="weaponGroup" onChange={(v) => update('type', v)} />
                     <Text label="外观" value={d.flavor} onChange={(v) => update('flavor', v)} />
                     <Input label="淬炼等级" value={d.enhance} onChange={(v) => update('enhance', v)} />
                     <Input label="暴击效果" value={d.crit} onChange={(v) => update('crit', v)} />
-                    <Text label="特性 (Property)" value={d.prop} onChange={(v) => update('prop', v)} />
-                    <Text label="神通 (Power)" value={d.power} onChange={(v) => update('power', v)} />
+                    <RuleText label="特性 (Property)" value={d.prop} onChange={(v) => update('prop', v)} />
+                    <RuleText label="神通 (Power)" value={d.power} onChange={(v) => update('power', v)} />
                 </form>
             </div>
         );
@@ -117,16 +117,14 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                     <div className="row">
                         <div className="col"><Input label="类型" value={d.powerType} onChange={(v) => update('powerType', v)} /></div>
                         <div className="col">
-                            <Select label="动作" value={d.action} onChange={(v) => update('action', v)}
-                                options={Object.entries(ActionMap).map(([k, v]) => ({ v: k, t: v.t }))}
-                            />
+                            <TermSelect label="动作" category="action" value={d.action} snapshot={d.actionLabel} onChange={(action, actionLabel) => onChange({ ...item, action, actionLabel })} />
                         </div>
                     </div>
                     <div className="row">
                         <div className="col"><RangeBuilder value={d.range} onChange={(v) => update('range', v)} /></div>
                         <div className="col"><Input label="目标" value={d.target} onChange={(v) => update('target', v)} /></div>
                     </div>
-                    <Text label="效果" value={d.effect} onChange={(v) => update('effect', v)} />
+                    <RuleText label="效果" value={d.effect} onChange={(v) => update('effect', v)} />
                 </form>
             </div>
         );
@@ -141,7 +139,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                     <Input label="修炼门槛" value={d.req} onChange={(v) => update('req', v)} />
                     <Input label="层级" value={d.tier} onChange={(v) => update('tier', v)} />
                     <Text label="描述" value={d.flavor} onChange={(v) => update('flavor', v)} />
-                    <Text label="造诣效果" value={d.benefit} onChange={(v) => update('benefit', v)} />
+                    <RuleText label="造诣效果" value={d.benefit} onChange={(v) => update('benefit', v)} />
                 </form>
             </div>
         );

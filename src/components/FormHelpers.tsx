@@ -1,5 +1,8 @@
-import { useId } from 'react';
-import { Keywords, RangeTypes, Shapes, Stats, Defenses } from '../constants';
+import { useId, useState } from 'react';
+import { RangeTypes, Shapes, Stats } from '../constants';
+import { useTerminology } from '../hooks/TerminologyContext';
+import { keywordCategories, splitTerms, TermCategories, type TermCategory } from '../utils/terminology';
+import { TermSelect } from './TermControls';
 import type { Trait } from '../types';
 import { buildRange, parseRange } from '../utils/range';
 interface FieldProps { label: string; value?: string | number; onChange: (value: string) => void; }
@@ -19,13 +22,29 @@ export function Select({ label, value, onChange, options }: FieldProps & { optio
     </select></div>;
 }
 export function KeywordSelector({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-    const current = value.split(/[,，]\s*/).filter(Boolean);
+    const { terminology, collect } = useTerminology();
+    const [category, setCategory] = useState<TermCategory>('other');
+    const [search, setSearch] = useState('');
+    const current = splitTerms(value);
     const toggle = (tag: string) => onChange((current.includes(tag) ? current.filter(key => key !== tag) : [...current, tag]).join('，'));
+    const remember = (text: string, explicit = false) => {
+        const unknown = splitTerms(text).filter(word => !terminology.entries.some(term =>
+            term.label.toLocaleLowerCase() === word.toLocaleLowerCase() || term.value.toLocaleLowerCase() === word.toLocaleLowerCase()));
+        collect(category, unknown.join('，'), explicit);
+    };
+    const id = useId();
     return <div className="form-group"><strong>功法属性</strong>
-        {Object.entries(Keywords).map(([group, words], index) => <div className="keyword-group" key={group}><span className="keyword-group-title">{['来源', '伤害', '效应', '器材'][index]}</span>
-            {words.map(word => <button type="button" key={word} aria-pressed={current.includes(word)} className={`check-btn ${current.includes(word) ? 'selected' : ''}`} onClick={() => toggle(word)}>{word}</button>)}
-        </div>)}
-        <Input label="自定义关键词（逗号分隔）" value={value} onChange={onChange} />
+        <input aria-label="筛选关键词" className="form-control" placeholder="搜索可选关键词…" value={search} onChange={event => setSearch(event.target.value)} />
+        {keywordCategories.map(group => <details className="term-keywords" key={group} open={!!search || undefined}><summary>{TermCategories[group]}</summary><div className="keyword-group">
+            {terminology.entries.filter(term => term.category === group && !term.hidden && term.label.includes(search.trim())).map(term =>
+                <button type="button" key={term.id} title={term.reference ? `参考：${term.reference}` : '自定义词'} aria-pressed={current.includes(term.label)} className={`check-btn ${current.includes(term.label) ? 'selected' : ''}`} onClick={() => toggle(term.label)}>{term.label}</button>)}
+        </div></details>)}
+        <label htmlFor={id}>自定义关键词（逗号分隔）</label>
+        <input id={id} className="form-control" value={value} onChange={event => onChange(event.target.value)} onBlur={event => remember(event.target.value)}
+            onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); remember(event.currentTarget.value); } }} />
+        <div className="row term-toolbar"><label>新词归类<select aria-label="新关键词分类" value={category} onChange={event => setCategory(event.target.value as TermCategory)}>
+            {keywordCategories.map(group => <option key={group} value={group}>{TermCategories[group]}</option>)}
+        </select></label><button type="button" className="btn" onClick={() => remember(value, true)}>收录新词</button></div>
     </div>;
 }
 export function RangeBuilder({ value, onChange }: { value: string; onChange: (value: string) => void }) {
@@ -38,9 +57,9 @@ export function RangeBuilder({ value, onChange }: { value: string; onChange: (va
         {parts.type === 'Area' && <input aria-label="区域射程" placeholder="射程" value={parts.reach} onChange={event => update({ reach: event.target.value })} />}
     </div><Input label="范围文本（可直接编辑）" value={value} onChange={onChange} /></div>;
 }
-export function AttackBuilder({ att, def, onUpdate }: { att: string; def: string; onUpdate: (att: string, def: string) => void }) {
+export function AttackBuilder({ att, def, defLabel, onUpdate }: { att: string; def: string; defLabel?: string; onUpdate: (att: string, def: string, label?: string) => void }) {
     return <div className="row"><div className="col"><Input label="攻击属性 / 公式（可留空）" value={att} onChange={value => onUpdate(value, def)} /><small>{Stats.join(' / ')}</small></div>
-        <div className="col"><Select label="目标防御" value={def} onChange={value => onUpdate(att, value)} options={[{ v: '', t: '无攻击检定' }, ...Object.entries(Defenses).map(([v, t]) => ({ v, t }))]} /></div></div>;
+        <div className="col"><TermSelect label="目标防御" category="defense" value={def} snapshot={defLabel} emptyLabel="无攻击检定" onChange={(value, label) => onUpdate(att, value, label)} /></div></div>;
 }
 export function TraitListEditor({ label, value = [], onChange }: { label: string; value?: Trait[]; onChange: (value: Trait[]) => void }) {
     const update = (id: string, patch: Partial<Trait>) => onChange(value.map(trait => trait.id === id ? { ...trait, ...patch } : trait));

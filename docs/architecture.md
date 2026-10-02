@@ -6,6 +6,7 @@
 - `hooks/useLibrary.ts`：管理当前资源稿、保存状态、故障恢复及离页提醒。
 - `utils/archive.ts`：校验、迁移、导入合并与备份格式；`storage.ts`：浏览器存储边界。
 - `utils/resources.ts`：条目初始化、复制与搜索；其余工具文件处理等级默认值、范围、排序及卡片格式。
+- `utils/terminology.ts`：术语模型、初始候选、校验与合并；`hooks/TerminologyContext.tsx` 为共享编辑控件提供词库，持久化仍由 `useLibrary` 统一处理。同步草稿引用保证同一事件中录词和资源编辑不相互覆盖。
 - `components/`：编辑与呈现。普通招式和附属威能共享 `PowerEditor`、`PowerCard`；弹窗共享 `Dialog`。
 - `styles/`：`base.css` 提供基础布局与控件，`workspace.css` 管理编辑工作区和响应式布局，`cards.css` 管理可导出的资源卡，`home.css` 管理首页和欢迎内容。`index.css` 只负责按顺序引入。
 

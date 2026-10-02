@@ -1,10 +1,11 @@
 import type { DB, Item, MoveItem } from '../types';
 import { Config, type ModuleType } from '../constants';
 import { createResource, duplicateResource, emptyDB, modules, withItems } from './resources';
+import { validateTerminology, type Terminology } from './terminology';
 
 export const SCHEMA_VERSION = 1;
 export type ImportMode = 'skip' | 'overwrite' | 'copy';
-export interface Archive { schemaVersion: 1; exportedAt: string; data: Partial<DB>; }
+export interface Archive { schemaVersion: 1; exportedAt: string; data: Partial<DB>; terminology?: Terminology; }
 const recordOf = (value: unknown, path: string): Record<string, unknown> => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${path} 必须是对象`);
     return value as Record<string, unknown>;
@@ -39,7 +40,7 @@ function normalizeRows(value: unknown, level: boolean, path: string): (Record<st
 /** Validate editing structure, not the balance or legality of authored rules. */
 export function normalizeResource(module: ModuleType, value: unknown, path: string = Config[module].title): Item {
     const raw = recordOf(value, path);
-    textFields(raw, ['id', 'name', 'flavor', 'source', 'sourceText'], path);
+    textFields(raw, ['id', 'name', 'flavor', 'source', 'sourceText', 'actionLabel', 'defLabel', 'typeLabel'], path);
     if (typeof raw.name !== 'string') throw new Error(`${path}.name 缺失`);
     const data = { ...raw };
     if ((module === 'traditions' || module === 'paths') && typeof data.entryLevel === 'number') data.entryLevel = String(data.entryLevel);
@@ -90,8 +91,15 @@ export function readArchive(value: unknown): Partial<DB> {
     if (!recognized) throw new Error('文件不包含可识别的资源库');
     return result;
 }
-export function makeArchive(data: Partial<DB>): Archive {
-    return { schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), data };
+export function readLibraryArchive(value: unknown): { data: Partial<DB>; terminology?: Terminology } {
+    const root = recordOf(value, '备份');
+    const terminology = root.terminology === undefined ? undefined : validateTerminology(root.terminology);
+    if (root.schemaVersion !== undefined && root.schemaVersion !== SCHEMA_VERSION) throw new Error('不支持此备份版本');
+    const termsOnly = terminology && root.schemaVersion === SCHEMA_VERSION && root.data && typeof root.data === 'object' && !Array.isArray(root.data) && Object.keys(root.data).length === 0;
+    return { data: termsOnly ? {} : readArchive(value), ...(terminology ? { terminology } : {}) };
+}
+export function makeArchive(data: Partial<DB>, terminology?: Terminology): Archive {
+    return { schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), data, ...(terminology ? { terminology } : {}) };
 }
 /** Count import decisions without cloning resources or allocating draft IDs. */
 export function summarizeImport(db: DB, incoming: Partial<DB>, mode: ImportMode) {

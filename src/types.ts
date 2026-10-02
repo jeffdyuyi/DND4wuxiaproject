@@ -7,6 +7,9 @@ export interface BaseItem {
     flavor?: string;
     source?: string;
     sourceText?: string;
+    actionLabel?: string;
+    defLabel?: string;
+    typeLabel?: string;
     // Preserve extension fields from third-party resources without bypassing type checks.
     [key: string]: unknown;
 }

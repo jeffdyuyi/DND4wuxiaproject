@@ -1,0 +1,1053 @@
+{
+  "source": "4E-NEXT-main/web/src/lib/homebrewSchema.ts · POWER_KEYWORD_GROUPS / GROUPS_BY_CATEGORY",
+  "entries": [
+    {
+      "category": "damage",
+      "label": "强酸",
+      "reference": "强酸"
+    },
+    {
+      "category": "damage",
+      "label": "寒冰",
+      "reference": "寒冰"
+    },
+    {
+      "category": "damage",
+      "label": "火焰",
+      "reference": "火焰"
+    },
+    {
+      "category": "damage",
+      "label": "力场",
+      "reference": "力场"
+    },
+    {
+      "category": "damage",
+      "label": "闪电",
+      "reference": "闪电"
+    },
+    {
+      "category": "damage",
+      "label": "暗蚀",
+      "reference": "暗蚀"
+    },
+    {
+      "category": "damage",
+      "label": "毒素",
+      "reference": "毒素"
+    },
+    {
+      "category": "damage",
+      "label": "心灵",
+      "reference": "心灵"
+    },
+    {
+      "category": "damage",
+      "label": "光耀",
+      "reference": "光耀"
+    },
+    {
+      "category": "damage",
+      "label": "雷鸣",
+      "reference": "雷鸣"
+    },
+    {
+      "category": "effect",
+      "label": "可强化",
+      "reference": "可强化"
+    },
+    {
+      "category": "effect",
+      "label": "灵气",
+      "reference": "灵气"
+    },
+    {
+      "category": "effect",
+      "label": "野兽",
+      "reference": "野兽"
+    },
+    {
+      "category": "effect",
+      "label": "野兽形态",
+      "reference": "野兽形态"
+    },
+    {
+      "category": "effect",
+      "label": "引导神力",
+      "reference": "引导神力"
+    },
+    {
+      "category": "effect",
+      "label": "魅惑",
+      "reference": "魅惑"
+    },
+    {
+      "category": "effect",
+      "label": "咒法",
+      "reference": "咒法"
+    },
+    {
+      "category": "effect",
+      "label": "恐惧",
+      "reference": "恐惧"
+    },
+    {
+      "category": "effect",
+      "label": "医疗",
+      "reference": "医疗"
+    },
+    {
+      "category": "effect",
+      "label": "幻术",
+      "reference": "幻术"
+    },
+    {
+      "category": "effect",
+      "label": "鼓舞",
+      "reference": "鼓舞"
+    },
+    {
+      "category": "effect",
+      "label": "变形",
+      "reference": "变形"
+    },
+    {
+      "category": "effect",
+      "label": "狂暴",
+      "reference": "狂暴"
+    },
+    {
+      "category": "effect",
+      "label": "厉喝",
+      "reference": "厉喝"
+    },
+    {
+      "category": "effect",
+      "label": "可靠",
+      "reference": "可靠"
+    },
+    {
+      "category": "effect",
+      "label": "符文",
+      "reference": "符文"
+    },
+    {
+      "category": "effect",
+      "label": "睡眠",
+      "reference": "睡眠"
+    },
+    {
+      "category": "effect",
+      "label": "精魂",
+      "reference": "精魂"
+    },
+    {
+      "category": "effect",
+      "label": "架势",
+      "reference": "架势"
+    },
+    {
+      "category": "effect",
+      "label": "召唤",
+      "reference": "召唤"
+    },
+    {
+      "category": "effect",
+      "label": "传送",
+      "reference": "传送"
+    },
+    {
+      "category": "effect",
+      "label": "区域",
+      "reference": "区域"
+    },
+    {
+      "category": "effect",
+      "label": "套路",
+      "reference": "套路"
+    },
+    {
+      "category": "accessory",
+      "label": "法器",
+      "reference": "法器"
+    },
+    {
+      "category": "accessory",
+      "label": "武器",
+      "reference": "武器"
+    },
+    {
+      "category": "source",
+      "label": "奥术",
+      "reference": "奥术"
+    },
+    {
+      "category": "source",
+      "label": "武术",
+      "reference": "武术"
+    },
+    {
+      "category": "source",
+      "label": "神术",
+      "reference": "神术"
+    },
+    {
+      "category": "source",
+      "label": "灵能",
+      "reference": "灵能"
+    },
+    {
+      "category": "source",
+      "label": "原力",
+      "reference": "原力"
+    },
+    {
+      "category": "source",
+      "label": "影能",
+      "reference": "影能"
+    },
+    {
+      "category": "other",
+      "label": "领域",
+      "reference": "领域"
+    },
+    {
+      "category": "other",
+      "label": "元素",
+      "reference": "元素"
+    },
+    {
+      "category": "other",
+      "label": "死灵",
+      "reference": "死灵"
+    },
+    {
+      "category": "other",
+      "label": "塑能",
+      "reference": "塑能"
+    },
+    {
+      "category": "other",
+      "label": "惑控",
+      "reference": "惑控"
+    },
+    {
+      "category": "other",
+      "label": "幽影",
+      "reference": "幽影"
+    },
+    {
+      "category": "other",
+      "label": "剑法术",
+      "reference": "剑法术"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "重刃",
+      "reference": "重刃"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "轻刃",
+      "reference": "轻刃"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "长武器",
+      "reference": "长武器"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "矛",
+      "reference": "矛"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "连枷",
+      "reference": "连枷"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "锤",
+      "reference": "锤"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "镐",
+      "reference": "镐"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "斧",
+      "reference": "斧"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "弓",
+      "reference": "弓"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "弩",
+      "reference": "弩"
+    },
+    {
+      "category": "weaponGroup",
+      "label": "投掷",
+      "reference": "投掷"
+    },
+    {
+      "category": "implement",
+      "label": "权杖",
+      "reference": "权杖"
+    },
+    {
+      "category": "implement",
+      "label": "法杖",
+      "reference": "法杖"
+    },
+    {
+      "category": "implement",
+      "label": "法珠",
+      "reference": "法珠"
+    },
+    {
+      "category": "implement",
+      "label": "圣徽",
+      "reference": "圣徽"
+    },
+    {
+      "category": "implement",
+      "label": "魔杖",
+      "reference": "魔杖"
+    },
+    {
+      "category": "implement",
+      "label": "魔典",
+      "reference": "魔典"
+    },
+    {
+      "category": "implement",
+      "label": "图腾",
+      "reference": "图腾"
+    },
+    {
+      "category": "implement",
+      "label": "气印",
+      "reference": "气印"
+    },
+    {
+      "category": "armor",
+      "label": "布甲",
+      "reference": "布甲"
+    },
+    {
+      "category": "armor",
+      "label": "皮甲",
+      "reference": "皮甲"
+    },
+    {
+      "category": "armor",
+      "label": "革甲",
+      "reference": "革甲"
+    },
+    {
+      "category": "armor",
+      "label": "链甲",
+      "reference": "链甲"
+    },
+    {
+      "category": "armor",
+      "label": "鳞甲",
+      "reference": "鳞甲"
+    },
+    {
+      "category": "armor",
+      "label": "板甲",
+      "reference": "板甲"
+    },
+    {
+      "category": "armor",
+      "label": "盾牌",
+      "reference": "盾牌"
+    },
+    {
+      "category": "weapon",
+      "label": "木棒",
+      "reference": "木棒",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "匕首",
+      "reference": "匕首",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "标枪",
+      "reference": "标枪",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "硬头锤",
+      "reference": "硬头锤",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "镰刀",
+      "reference": "镰刀",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "矛",
+      "reference": "矛",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "带刺铁手套^^1^^",
+      "reference": "带刺铁手套^^1^^",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "轻型硬头锤",
+      "reference": "轻型硬头锤",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "短矛",
+      "reference": "短矛",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "骨质拳套",
+      "reference": "骨质拳套",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "寡妇之刀",
+      "reference": "寡妇之刀",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "腕刃",
+      "reference": "腕刃",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "巨木棒",
+      "reference": "巨木棒",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "钉头锤",
+      "reference": "钉头锤",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "木棍",
+      "reference": "木棍",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "巨镰",
+      "reference": "巨镰",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "战斧",
+      "reference": "战斧",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "连枷",
+      "reference": "连枷",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "手斧",
+      "reference": "手斧",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "长剑",
+      "reference": "长剑",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "细剑",
+      "reference": "细剑",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "弯刀",
+      "reference": "弯刀",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "短剑",
+      "reference": "短剑",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "飞锤",
+      "reference": "飞锤",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "战锤",
+      "reference": "战锤",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "战镐",
+      "reference": "战镐",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "阔剑",
+      "reference": "阔剑",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "寇派斯弯刀",
+      "reference": "寇派斯弯刀",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "轻型战镐",
+      "reference": "轻型战镐",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "多头鞭",
+      "reference": "多头鞭",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "三叉戟",
+      "reference": "三叉戟",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "骑枪",
+      "reference": "骑枪",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "爪钩",
+      "reference": "爪钩",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "双面骨斧",
+      "reference": "双面骨斧",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "弯刃大刀",
+      "reference": "弯刃大刀",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "长柄刀",
+      "reference": "长柄刀",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "巨斧",
+      "reference": "巨斧",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "巨剑",
+      "reference": "巨剑",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "长戟",
+      "reference": "长戟",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "重型连枷",
+      "reference": "重型连枷",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "长矛",
+      "reference": "长矛",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "巨锤",
+      "reference": "巨锤",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "重型战镐",
+      "reference": "重型战镐",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "长枪",
+      "reference": "长枪",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "长骨戟",
+      "reference": "长骨戟",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "混用剑",
+      "reference": "混用剑",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "拳匕",
+      "reference": "拳匕",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "矮人重锤",
+      "reference": "矮人重锤",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "反曲刀",
+      "reference": "反曲刀",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "格挡匕首^^1^^",
+      "reference": "格挡匕首^^1^^",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "尖刺盾牌^^2^^",
+      "reference": "尖刺盾牌^^2^^",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "投矛",
+      "reference": "投矛",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "三头连枷",
+      "reference": "三头连枷",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "战争斧",
+      "reference": "战争斧",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "锯齿镐",
+      "reference": "锯齿镐",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "长鞭",
+      "reference": "长鞭",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "轮刃",
+      "reference": "轮刃",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "卓尔长刀",
+      "reference": "卓尔长刀",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "塔兰塔弯刀",
+      "reference": "塔兰塔弯刀",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "护腕斧",
+      "reference": "护腕斧",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "捕网",
+      "reference": "捕网",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "骨质拳刃",
+      "reference": "骨质拳刃",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "歌唱棍",
+      "reference": "歌唱棍",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "龟甲刃^^3^^",
+      "reference": "龟甲刃^^3^^",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "刺链",
+      "reference": "刺链",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "处刑斧",
+      "reference": "处刑斧",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "全长巨剑",
+      "reference": "全长巨剑",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "巨矛",
+      "reference": "巨矛",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "矮人巨锤",
+      "reference": "矮人巨锤",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "塔兰塔长镰",
+      "reference": "塔兰塔长镰",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "绞索^^1^^",
+      "reference": "绞索^^1^^",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "矛斧",
+      "reference": "矛斧",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "钳杖",
+      "reference": "钳杖",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "手弩",
+      "reference": "手弩",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "投石索",
+      "reference": "投石索",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "弹射带",
+      "reference": "弹射带",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "弩",
+      "reference": "弩",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "连发弩",
+      "reference": "连发弩",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "三刃镖",
+      "reference": "三刃镖",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "长弓",
+      "reference": "长弓",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "短弓",
+      "reference": "短弓",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "手里剑",
+      "reference": "手里剑",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "塔兰塔回旋镖",
+      "reference": "塔兰塔回旋镖",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "希恩德瑞克回旋镖",
+      "reference": "希恩德瑞克回旋镖",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "流星索",
+      "reference": "流星索",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "巨弓",
+      "reference": "巨弓",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "优异弩",
+      "reference": "优异弩",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "weapon",
+      "label": "吹箭筒",
+      "reference": "吹箭筒",
+      "source": "4E-NEXT-main/reference · 武器表"
+    },
+    {
+      "category": "status",
+      "label": "目盲",
+      "reference": "目盲",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "晕眩",
+      "reference": "晕眩",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "耳聋",
+      "reference": "耳聋",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "被支配",
+      "reference": "被支配",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "濒死",
+      "reference": "濒死",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "被擒拿",
+      "reference": "被擒拿",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "无助",
+      "reference": "无助",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "定身",
+      "reference": "定身",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "被标记",
+      "reference": "被标记",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "石化",
+      "reference": "石化",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "倒地",
+      "reference": "倒地",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "移除游戏",
+      "reference": "移除游戏",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "束缚",
+      "reference": "束缚",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "迟缓",
+      "reference": "迟缓",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "震慑",
+      "reference": "震慑",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "被突袭",
+      "reference": "被突袭",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "失去意识",
+      "reference": "失去意识",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "status",
+      "label": "虚弱",
+      "reference": "虚弱",
+      "source": "4E-NEXT-main/reference · 状态表"
+    },
+    {
+      "category": "slot",
+      "label": "头部",
+      "reference": "头部",
+      "source": "4E-NEXT-main/equipment · itemCategory"
+    },
+    {
+      "category": "slot",
+      "label": "足部",
+      "reference": "足部",
+      "source": "4E-NEXT-main/equipment · itemCategory"
+    },
+    {
+      "category": "slot",
+      "label": "戒指",
+      "reference": "戒指",
+      "source": "4E-NEXT-main/equipment · itemCategory"
+    },
+    {
+      "category": "slot",
+      "label": "手部",
+      "reference": "手部",
+      "source": "4E-NEXT-main/equipment · itemCategory"
+    },
+    {
+      "category": "slot",
+      "label": "腰部",
+      "reference": "腰部",
+      "source": "4E-NEXT-main/equipment · itemCategory"
+    },
+    {
+      "category": "slot",
+      "label": "臂部",
+      "reference": "臂部",
+      "source": "4E-NEXT-main/equipment · itemCategory"
+    },
+    {
+      "category": "slot",
+      "label": "颈部",
+      "reference": "颈部",
+      "source": "4E-NEXT-main/equipment · itemCategory"
+    }
+  ]
+}

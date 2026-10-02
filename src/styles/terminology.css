@@ -1,0 +1,14 @@
+.term-toolbar { margin: 10px 0; align-items: center; flex-wrap: wrap; }
+.term-toolbar select { margin-left: 6px; }
+.term-list { max-height: 38vh; overflow-y: auto; }
+.term-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; margin-bottom: 10px; padding: 8px; border: 1px solid var(--ui-border); border-radius: 4px; }
+.term-entry small { grid-column: 1; color: #66747d; }
+.term-entry button { grid-column: 2; grid-row: 1 / 3; }
+.term-reference { grid-column: 1 / -1; font-size: 0.85em; }
+.term-hidden { background: #eee; }
+.term-custom { margin: 6px 0; font-size: 0.85em; }
+.term-custom summary, .term-keywords summary { cursor: pointer; color: #455a64; }
+.term-custom .row { flex-wrap: wrap; margin-top: 6px; }
+.term-custom select { max-width: 100%; }
+.term-keywords { margin: 6px 0; }
+.term-keywords .keyword-group { max-height: 140px; overflow-y: auto; }
