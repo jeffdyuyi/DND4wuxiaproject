@@ -1,14 +1,14 @@
 
 export const Config = {
-    schools: { title: "武林门派库", color: "bg-red", key: "db_schools_v1" },
-    moves: { title: "武学招式库", color: "bg-green", key: "db_moves_v5" },
-    roots: { title: "根骨天赋库", color: "bg-gray", key: "db_roots_v5" },
-    destinies: { title: "先天命格库", color: "bg-gray", key: "db_destinies_v5" },
-    origins: { title: "江湖出身库", color: "bg-gray", key: "db_origins_v5" },
-    feats: { title: "武道造诣库", color: "bg-gray", key: "db_feats_v5" },
-    items: { title: "神兵宝甲库", color: "bg-gold", key: "db_items_v5" },
-    traditions: { title: "修行传承库", color: "bg-green", key: "db_traditions_v1" },
-    paths: { title: "成道之途库", color: "bg-gold", key: "db_paths_v1" }
+    schools: { title: "武林门派", color: "bg-red", key: "db_schools_v1" },
+    moves: { title: "武学招式", color: "bg-green", key: "db_moves_v5" },
+    roots: { title: "根骨天赋", color: "bg-gray", key: "db_roots_v5" },
+    destinies: { title: "先天命格", color: "bg-gray", key: "db_destinies_v5" },
+    origins: { title: "江湖出身", color: "bg-gray", key: "db_origins_v5" },
+    feats: { title: "武道造诣", color: "bg-gray", key: "db_feats_v5" },
+    items: { title: "神兵宝甲", color: "bg-gold", key: "db_items_v5" },
+    traditions: { title: "修行传承", color: "bg-green", key: "db_traditions_v1" },
+    paths: { title: "成道之途", color: "bg-gold", key: "db_paths_v1" }
 } as const;
 
 export type ModuleType = keyof typeof Config;

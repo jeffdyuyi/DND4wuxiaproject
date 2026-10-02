@@ -74,7 +74,7 @@ function App() {
     <Sidebar currentModule={module} viewMode={viewMode} onSwitchModule={selectModule} onGoHome={() => setViewMode('home')} />
     <div className="workspace">
       <header className="workspace-toolbar">
-        <strong>{viewMode === 'home' ? '吾侠 · 资源制作' : Config[module].title}</strong>
+        <strong>{viewMode === 'home' ? '吾侠' : Config[module].title}</strong>
         <span role="status" className={library.blocked || library.dirty ? 'save-status save-warning' : 'save-status'}>
           {library.blocked ? '保存已暂停' : library.dirty ? '有未保存修改' : '本地数据就绪'}
         </span>

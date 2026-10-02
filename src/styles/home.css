@@ -1,12 +1,11 @@
 .home-page { padding: 32px; max-width: 1200px; margin: 0 auto; width: 100%; overflow-y: auto; box-sizing: border-box; }
-.home-page h1 { text-align: center; margin: 0 0 32px; color: #2c3e50; }
-.module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.module-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .module-tile { display: flex; align-items: center; gap: 16px; padding: 20px; border: 1px solid #eef1f5; border-radius: 10px; background: #fff; box-shadow: 0 4px 6px #0000000d; text-align: left; cursor: pointer; font: inherit; transition: transform 0.2s, box-shadow 0.2s; }
 .module-tile:hover { transform: translateY(-3px); box-shadow: 0 8px 12px #0000001a; }
 .module-icon { font-size: 36px; }
 .module-tile strong { display: block; margin-bottom: 4px; color: #2c3e50; }
 .module-tile small { color: #66747d; }
-.library-search { padding: 24px; border-radius: 10px; background: #fff; box-shadow: 0 4px 12px #0000000d; }
+.library-search { padding: 24px; margin-bottom: 24px; border-radius: 10px; background: #fff; box-shadow: 0 4px 12px #0000000d; }
 .library-search h2 { margin: 0 0 16px; font-size: 20px; color: #34495e; }
 .library-search input { padding: 10px 12px; }
 .search-results { max-height: 400px; overflow-y: auto; margin-top: 16px; }

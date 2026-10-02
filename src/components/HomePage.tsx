@@ -15,16 +15,9 @@ export function HomePage({ db, onNavigate }: HomePageProps) {
     const results = useMemo(() => searchResources(db, query), [db, query]);
 
     return <div className="home-page">
-        <h1>吾侠</h1>
-        <div className="module-grid">
-            {modules.map(module => <button type="button" className="module-tile" key={module} onClick={() => onNavigate(module)}>
-                <span className="module-icon" aria-hidden="true">{ICONS[module]}</span>
-                <span><strong>{Config[module].title}</strong><small>{db[module].length} 个条目</small></span>
-            </button>)}
-        </div>
         <section className="library-search" aria-labelledby="library-search-title">
             <h2 id="library-search-title">🔍 藏经阁总索引</h2>
-            <input className="form-control" aria-label="搜索所有资源库" type="search" placeholder="输入关键词搜索所有库…"
+            <input className="form-control" aria-label="搜索所有资源" type="search" placeholder="输入关键词搜索所有资源…"
                 value={searchTerm} onChange={event => setSearchTerm(event.target.value)} />
             {query && <div className="search-results">
                 <p className="search-count" role="status">找到 {results.length} 个条目</p>
@@ -35,5 +28,11 @@ export function HomePage({ db, onNavigate }: HomePageProps) {
                     </button>)}
             </div>}
         </section>
+        <div className="module-grid">
+            {modules.map(module => <button type="button" className="module-tile" key={module} onClick={() => onNavigate(module)}>
+                <span className="module-icon" aria-hidden="true">{ICONS[module]}</span>
+                <span><strong>{Config[module].title}</strong><small>{db[module].length} 个条目</small></span>
+            </button>)}
+        </div>
     </div>;
 }
