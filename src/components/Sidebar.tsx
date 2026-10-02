@@ -1,38 +1,28 @@
-
-import React from 'react';
 import type { ModuleType } from '../constants';
 import { Config, ICONS } from '../constants';
+import { modules } from '../utils/resources';
 
 interface SidebarProps {
     currentModule: ModuleType;
     viewMode: 'home' | 'tool';
-    onSwitchModule: (mod: ModuleType) => void;
+    onSwitchModule: (module: ModuleType) => void;
     onGoHome: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentModule, viewMode, onSwitchModule, onGoHome }) => {
-    return (
-        <div className="main-nav">
-            {/* Home Button */}
-            <div
-                className={`nav-btn ${viewMode === 'home' ? 'active' : ''}`}
-                onClick={onGoHome}
-                style={{ marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}
-            >
-                <span className="nav-icon">🏠</span>
-                <span style={{ fontSize: '10px' }}>首页</span>
-            </div>
-
-            {(Object.keys(Config) as ModuleType[]).map((mod) => (
-                <div
-                    key={mod}
-                    className={`nav-btn ${viewMode === 'tool' && currentModule === mod ? 'active' : ''}`}
-                    onClick={() => onSwitchModule(mod)}
-                >
-                    <span className="nav-icon">{ICONS[mod]}</span>
-                    <span style={{ fontSize: '10px' }}>{Config[mod].title.substring(0, 2)}</span>
-                </div>
-            ))}
-        </div>
-    );
-};
+export function Sidebar({ currentModule, viewMode, onSwitchModule, onGoHome }: SidebarProps) {
+    return <nav className="main-nav" aria-label="资源导航">
+        <button type="button" className={'nav-btn nav-home ' + (viewMode === 'home' ? 'active' : '')}
+            aria-current={viewMode === 'home' ? 'page' : undefined} onClick={onGoHome}>
+            <span className="nav-icon" aria-hidden="true">🏠</span><span>首页</span>
+        </button>
+        {modules.map(module => {
+            const active = viewMode === 'tool' && currentModule === module;
+            return <button type="button" key={module} className={'nav-btn ' + (active ? 'active' : '')}
+                aria-label={Config[module].title} title={Config[module].title} aria-current={active ? 'page' : undefined}
+                onClick={() => onSwitchModule(module)}>
+                <span className="nav-icon" aria-hidden="true">{ICONS[module]}</span>
+                <span>{Config[module].title.substring(0, 2)}</span>
+            </button>;
+        })}
+    </nav>;
+}

@@ -5,8 +5,10 @@ export interface BaseItem {
     id: string;
     name: string;
     flavor?: string;
-    // Generic fields that might exist on any item
-    [key: string]: any;
+    source?: string;
+    sourceText?: string;
+    // Preserve extension fields from third-party resources without bypassing type checks.
+    [key: string]: unknown;
 }
 
 export interface MoveItem extends BaseItem {
@@ -25,7 +27,12 @@ export interface MoveItem extends BaseItem {
     effect?: string;
     sustain?: string;
     special?: string;
+    acquiredLevel?: string;
+    rules?: RuleSection[];
 }
+
+export interface RuleSection { id: string; title: string; text: string; }
+export interface Trait { id: string; name: string; desc: string; }
 
 export interface EquipmentItem extends BaseItem {
     level: number;
@@ -61,7 +68,7 @@ export interface SchoolItem extends BaseItem {
     hpPerLvl: string;
     surges: string;
     trainedSkills: string; // Text description of skill choices
-    features: { name: string; desc: string }[]; // List of class features
+    features: Trait[];
 }
 
 export interface RootItem extends BaseItem {
@@ -75,7 +82,7 @@ export interface RootItem extends BaseItem {
 export interface OriginItem extends BaseItem {
     languages: string;
     skillBonuses: string;
-    traits: { name: string; desc: string }[]; // Racial features like Dragonborn Fury
+    traits: Trait[];
 }
 
 export interface DestinyItem extends BaseItem {
@@ -87,14 +94,36 @@ export interface DestinyItem extends BaseItem {
     effect: string;
 }
 
-export type Item = MoveItem | EquipmentItem | GeneralItem | SchoolItem | RootItem | OriginItem | DestinyItem;
-
-export interface DB {
-    schools: Item[];
-    moves: Item[];
-    roots: Item[];
-    destinies: Item[];
-    origins: Item[];
-    feats: Item[];
-    items: Item[];
+export interface ProgressionFeature {
+    id: string;
+    level: string;
+    name: string;
+    desc: string;
 }
+
+/** Independent resource package; powers are embedded so JSON exports are self-contained. */
+export interface ProgressionItem extends BaseItem {
+    entryLevel: string;
+    req: string;
+    description: string;
+    source: string;
+    features: ProgressionFeature[];
+    powers: MoveItem[];
+    culminationTitle?: string;
+    culmination?: string;
+}
+
+export type Item = MoveItem | EquipmentItem | GeneralItem | SchoolItem | RootItem | OriginItem | DestinyItem | ProgressionItem;
+
+export interface ResourceMap {
+    schools: SchoolItem;
+    moves: MoveItem;
+    roots: RootItem;
+    destinies: DestinyItem;
+    origins: OriginItem;
+    feats: GeneralItem;
+    items: EquipmentItem;
+    traditions: ProgressionItem;
+    paths: ProgressionItem;
+}
+export type DB = { [K in keyof ResourceMap]: ResourceMap[K][] };

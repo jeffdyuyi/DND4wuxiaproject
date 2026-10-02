@@ -2,8 +2,11 @@
 import React from 'react';
 import type { ModuleType } from '../constants';
 import { ActionMap } from '../constants';
+import { PowerEditor } from './PowerEditor';
 import type { Item, MoveItem, EquipmentItem, GeneralItem, SchoolItem, RootItem, OriginItem, DestinyItem } from '../types';
-import { Input, Text, Select, KeywordSelector, RangeBuilder, AttackBuilder, TraitListEditor } from './FormHelpers';
+import { Input, Text, Select, RangeBuilder, TraitListEditor } from './FormHelpers';
+import { ProgressionEditor } from './Progression';
+import type { ProgressionItem } from '../types';
 
 interface EditorProps {
     module: ModuleType;
@@ -14,53 +17,16 @@ interface EditorProps {
 export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
     if (!item) return <div className="editor-panel">请选择或新建条目</div>;
 
-    const update = (key: string, val: any) => {
+    if (module === 'traditions' || module === 'paths') {
+        return <ProgressionEditor module={module} item={item as ProgressionItem} onChange={onChange} />;
+    }
+
+    const update = (key: string, val: unknown) => {
         onChange({ ...item, [key]: val });
     };
 
     if (module === 'moves') {
-        const d = item as MoveItem;
-        return (
-            <div className="editor-panel">
-                <form onSubmit={e => e.preventDefault()}>
-                    <div className="row">
-                        <div className="col"><Input label="招式名称" value={d.name} onChange={(v) => update('name', v)} /></div>
-                        <div className="col"><Input label="等级" value={d.level} onChange={(v) => update('level', v)} /></div>
-                    </div>
-                    <div className="row">
-                        <div className="col"><Input label="门派" value={d.cls} onChange={(v) => update('cls', v)} /></div>
-                        <div className="col">
-                            <Select
-                                label="类型"
-                                value={d.type}
-                                onChange={(v) => update('type', v)}
-                                options={[{ v: 'basic', t: '外家功夫' }, { v: 'special', t: '催动内息' }, { v: 'ultimate', t: '凝神绝技' }]}
-                            />
-                        </div>
-                    </div>
-                    <KeywordSelector value={d.keywords} onChange={(v) => update('keywords', v)} />
-                    <Text label="意境描述" value={d.flavor} onChange={(v) => update('flavor', v)} />
-                    <div className="row">
-                        <div className="col">
-                            <Select label="动作" value={d.action} onChange={(v) => update('action', v)}
-                                options={Object.entries(ActionMap).map(([k, v]) => ({ v: k, t: v.t }))}
-                            />
-                        </div>
-                        <div className="col">
-                            <RangeBuilder value={d.range} onChange={(v) => update('range', v)} />
-                        </div>
-                    </div>
-                    <Input label="触发 (Trigger)" value={d.trigger} onChange={(v) => update('trigger', v)} />
-                    <Input label="目标" value={d.target} onChange={(v) => update('target', v)} />
-                    <AttackBuilder att={d.att || ''} def={d.def || ''} onUpdate={(newAtt, newDef) => onChange({ ...item, att: newAtt, def: newDef })} />
-                    <Text label="命中 (Hit)" value={d.hit} onChange={(v) => update('hit', v)} />
-                    <Text label="失手 (Miss)" value={d.miss} onChange={(v) => update('miss', v)} />
-                    <Text label="效果 (Effect)" value={d.effect} onChange={(v) => update('effect', v)} />
-                    <Input label="维持 (Sustain)" value={d.sustain} onChange={(v) => update('sustain', v)} />
-                    <Text label="特殊说明" value={d.special} onChange={(v) => update('special', v)} />
-                </form>
-            </div>
-        );
+        return <div className="editor-panel"><PowerEditor item={item as MoveItem} onChange={onChange} /></div>;
     } else if (module === 'items') {
         const d = item as EquipmentItem;
         return (
@@ -68,7 +34,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                 <form onSubmit={e => e.preventDefault()}>
                     <div className="row">
                         <div className="col"><Input label="宝物名称" value={d.name} onChange={(v) => update('name', v)} /></div>
-                        <div className="col"><Input label="等级" value={d.level} onChange={(v) => update('level', v)} /></div>
+                        <div className="col"><Input label="等级" value={d.level} onChange={(v) => /^\d*$/.test(v) && update('level', Number(v))} /></div>
                     </div>
                     <div className="row">
                         <div className="col"><Input label="部位" value={d.slot} onChange={(v) => update('slot', v)} /></div>

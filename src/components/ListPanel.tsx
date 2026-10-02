@@ -1,76 +1,36 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { Item } from '../types';
-
+import { resourceSearchText } from '../utils/resources';
 interface ListPanelProps {
-    items: Item[];
-    currentItemId: string | null;
-    onSelect: (id: string) => void;
-    onCreate: () => void;
-    onDelete: (id: string) => void;
-    onExport: () => void;
-    onImport: (file: File) => void;
+    items: Item[]; currentItemId: string | null; onSelect: (id: string) => void;
+    onCreate: () => void; onDelete: (id: string) => void;
+    onDuplicate: (id: string) => void; onExportItems: (ids: string[]) => void;
 }
-
-export const ListPanel: React.FC<ListPanelProps> = ({
-    items, currentItemId, onSelect, onCreate, onDelete, onExport, onImport
-}) => {
+export function ListPanel({ items, currentItemId, onSelect, onCreate, onDelete, onDuplicate, onExportItems }: ListPanelProps) {
     const [filter, setFilter] = useState('');
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            onImport(e.target.files[0]);
-        }
-    };
-
-    const filteredItems = items.filter(i => i.name.includes(filter));
-
-    return (
-        <div className="list-panel">
-            <div className="list-header">
-                <div style={{ display: 'flex', gap: '2px' }}>
-                    <button className="btn" style={{ flex: 1, padding: '4px' }} onClick={onCreate}>+ 新建</button>
-                    <button className="btn" style={{ padding: '4px' }} onClick={onExport} title="导出当前库">💾</button>
-                    <label className="btn" style={{ padding: '4px', cursor: 'pointer' }} title="导入数据">
-                        📂
-                        <input type="file" style={{ display: 'none' }} onChange={handleFileChange} accept=".json" />
-                    </label>
-                </div>
-                <input
-                    type="text"
-                    style={{ width: '100%', marginTop: '5px', padding: '4px', boxSizing: 'border-box' }}
-                    placeholder="搜索..."
-                    value={filter}
-                    onInput={(e) => setFilter(e.currentTarget.value)}
-                />
-            </div>
-            <div id="itemList">
-                {filteredItems.map(item => {
-                    // Determine subtitle
-                    let sub = '';
-                    if ('cls' in item) sub = item.cls;
-                    else if ('type' in item && typeof item.type === 'string' && item.type !== 'basic') sub = item.type;
-                    else if ('tier' in item) sub = item.tier as string;
-                    else if ('level' in item) sub = 'Lv' + item.level;
-
-                    return (
-                        <div
-                            key={item.id}
-                            className={`list-item ${item.id === currentItemId ? 'active' : ''}`}
-                            onClick={() => onSelect(item.id)}
-                        >
-                            <div>
-                                <span className="item-main">{item.name}</span>
-                                <div className="item-sub">{sub}</div>
-                            </div>
-                            <span
-                                className="del-btn"
-                                onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-                            >×</span>
-                        </div>
-                    );
-                })}
-            </div>
+    const [selected, setSelected] = useState<string[]>([]);
+    const filteredItems = items.filter(item => resourceSearchText(item).includes(filter.trim().toLocaleLowerCase()));
+    const selectedIds = selected.filter(id => items.some(item => item.id === id));
+    return <aside className="list-panel" aria-label="资源列表">
+        <div className="list-header">
+            <div className="toolbar"><button className="btn btn-primary" onClick={onCreate}>+ 新建</button>
+                <button className="btn" disabled={!selectedIds.length} onClick={() => onExportItems(selectedIds)}>导出选中 ({selectedIds.length})</button></div>
+            <input className="form-control" aria-label="搜索当前资源库" placeholder="搜索名称或规则内容…" value={filter} onChange={event => setFilter(event.target.value)} />
         </div>
-    );
-};
+        <div id="itemList">
+            {!items.length && <p className="empty-state">此资源库暂无条目。点击“新建”开始制作，或导入 JSON。</p>}
+            {!!items.length && !filteredItems.length && <p className="empty-state">未找到匹配资源。</p>}
+            {filteredItems.map(item => <div key={item.id} className={`list-item ${item.id === currentItemId ? 'active' : ''}`}>
+                <input type="checkbox" aria-label={`选择 ${item.name}`} checked={selectedIds.includes(item.id)} onChange={event => setSelected(event.target.checked ? [...selected, item.id] : selected.filter(id => id !== item.id))} />
+                <button className="resource-select" onClick={() => onSelect(item.id)}><span className="item-main">{item.name || '未命名条目'}</span>
+                    <span className="item-sub">{typeof item.cls === 'string' ? item.cls : typeof item.tier === 'string' ? item.tier : item.entryLevel ? `${String(item.entryLevel)}级起` : item.level !== undefined ? `等级 ${String(item.level)}` : ''}</span>
+                </button>
+                <div className="item-actions">
+                    <button className="btn" title="复制条目" aria-label={`复制 ${item.name}`} onClick={() => onDuplicate(item.id)}>⧉</button>
+                    <button className="btn" title="导出单条 JSON" aria-label={`导出 ${item.name}`} onClick={() => onExportItems([item.id])}>↓</button>
+                    <button className="btn" title="删除条目" aria-label={`删除 ${item.name}`} onClick={() => onDelete(item.id)}>×</button>
+                </div>
+            </div>)}
+        </div>
+    </aside>;
+}

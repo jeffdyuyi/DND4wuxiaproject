@@ -1,50 +1,15 @@
 ---
-description: 执行代码质量检查与标准优化步骤
+description: 吾侠代码、数据兼容与卡片验收
 ---
 
-# 代码优化工作流
+# 开发验收
 
-本工作流用于对项目进行代码质量检查和常规优化。
+根据改动范围使用 docs/resource-model.md 和 docs/card-format.md。
 
-## 步骤
+1. 运行 npm run lint、npm run typecheck、npm test、npm run build。
+2. 数据改动检查旧存档读取、导入整体验证、重复处理和保存失败恢复。
+3. 表单改动检查连续编辑、切换条目、稳定 ID 和嵌入威能。
+4. 卡片改动检查换行、复杂规则、长卡及不同导出格式；浏览器截图和实际 PNG 是视觉验收依据。
+5. 报告实际通过的检查及未验证项，不用构建成功替代浏览器交互或图片验证。
 
-1. 运行 ESLint 检查代码规范问题
-```
-npm run lint
-```
-
-2. 运行 TypeScript 类型检查
-```
-npx tsc --noEmit
-```
-
-3. 构建验证（检查是否有构建错误）
-```
-npm run build
-```
-
-4. 本地开发服务器预览，人工验证功能
-```
-npm run dev
-```
-
-## 优化清单（每次迭代进行检查）
-
-- [ ] `localStorage` 存储是否有 `QuotaExceededError` 保护
-- [ ] 无 `@ts-ignore` 或 `any` 类型绕过
-- [ ] 确认对话框使用自定义组件（非原生 `confirm()`）
-- [ ] 表单组件状态在切换条目时正确重置
-- [ ] 全局搜索覆盖内容字段（keywords, flavor, description 等）
-- [ ] React key 使用稳定的唯一标识符（非数组 index）
-- [ ] 无遗留开发注释影响可读性
-
-## 关键文件速查
-
-| 文件 | 职责 |
-|------|------|
-| `src/utils/storage.ts` | localStorage 读写封装 |
-| `src/App.tsx` | 状态管理与核心逻辑 |
-| `src/components/Editor.tsx` | 各模块表单编辑器 |
-| `src/components/Preview.tsx` | 卡片预览与图片导出 |
-| `src/components/FormHelpers.tsx` | 通用表单组件库 |
-| `src/constants.ts` | 全局常量与模块配置 |
+核心文件：src/utils/archive.ts、storage.ts、resources.ts、src/hooks/useLibrary.ts、src/components/PowerEditor.tsx、PowerCard.tsx、Progression.tsx。

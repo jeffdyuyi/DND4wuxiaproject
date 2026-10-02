@@ -1,9 +1,13 @@
 
-import React, { useRef } from 'react';
-import { marked } from 'marked';
+import React, { useRef, useState } from 'react';
+import { RichText } from './RichText';
+import { PowerCard } from './PowerCard';
 import html2canvas from 'html2canvas';
 import type { ModuleType } from '../constants';
-import { Config, ActionMap, Defenses } from '../constants';
+import { Config, ActionMap } from '../constants';
+import { ProgressionCard } from './Progression';
+import { resolveCardFormat } from '../utils/card-format';
+import type { ProgressionItem } from '../types';
 import type { Item, MoveItem, EquipmentItem, GeneralItem, SchoolItem, RootItem, OriginItem, DestinyItem } from '../types';
 
 interface PreviewProps {
@@ -13,75 +17,50 @@ interface PreviewProps {
 
 export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
     const cardRef = useRef<HTMLDivElement>(null);
+    const [format, setFormat] = useState('full');
+    const [scale, setScale] = useState(1);
+    const [exporting, setExporting] = useState(false);
+    const [feedback, setFeedback] = useState('');
 
     if (!item) return <div className="preview-panel"></div>;
 
+    const isProgression = module === 'traditions' || module === 'paths';
+    const powers = isProgression ? (item as ProgressionItem).powers : [];
+    const selectedFormat = isProgression ? resolveCardFormat(format, powers) : 'full';
+
     const exportImage = async (copy = false) => {
         if (!cardRef.current) return;
-        const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: null });
-        if (copy) {
-            canvas.toBlob(blob => {
-                if (blob) {
-                    navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
-                        .then(() => alert("复制成功"))
-                        .catch(() => alert("复制失败"));
-                }
+        setExporting(true); setFeedback('');
+        try {
+            await document.fonts.ready;
+            const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: null,
+                onclone: doc => { doc.querySelectorAll<HTMLElement>('[data-preview-scale]').forEach(element => { element.style.transform = 'none'; }); }
             });
-        } else {
-            const link = document.createElement('a');
-            link.download = `${item.name}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-        }
+            const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('图片过长或无法生成')), 'image/png'));
+            if (copy) {
+                if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('此浏览器不支持复制图片，请下载 PNG');
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                setFeedback('图片已复制');
+            } else {
+                const url = URL.createObjectURL(blob), link = document.createElement('a');
+                link.download = `${item.name.replace(/[<>:"/\\|?*]/g, '_') || '吾侠资源'}_${selectedFormat.replace(':', '_')}.png`;
+                link.href = url; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+                setFeedback('图片已生成并下载');
+            }
+        } catch (error) { setFeedback(`导出失败：${error instanceof Error ? error.message : '请尝试概要卡或单张威能卡'}`); }
+        finally { setExporting(false); }
     };
 
-    const md = (text?: string) => {
-        if (!text) return null;
-        const html = marked.parseInline(text) as string;
-        return <span dangerouslySetInnerHTML={{ __html: html }} />;
-    };
+    const md = (text?: string) => <RichText text={text} />;
 
     let content;
 
-    if (module === 'moves') {
-        const d = item as MoveItem;
-
-
-        const typeInfo = {
-            basic: { t: '外家功夫', c: 'bg-green' },
-            special: { t: '催动内息', c: 'bg-red' },
-            ultimate: { t: '凝神绝技', c: 'bg-black' }
-        }[d.type] || { t: '未知', c: 'bg-green' };
-
-        const action = ActionMap[d.action as keyof typeof ActionMap] || { t: '', c: '' };
-        // Defenses
-        const defLabel = Defenses[d.def as keyof typeof Defenses] || '';
-        const attackText = (d.att && d.def) ? `${d.att} vs. ${defLabel}` : "";
-
-        content = (
-            <div className={`wuxia-card`}>
-                <div className={`card-header ${typeInfo.c}`}>
-                    <span className="card-title">{d.name}</span>
-                    <span className="card-meta">{d.cls} {typeInfo.t} {d.level}</span>
-                </div>
-                <div className="flavor">{d.flavor}</div>
-                <div className="stat-row"><span><span className="label">功法属性：</span>{d.keywords}</span></div>
-                <div className="stat-row">
-                    <span>
-                        <span className={`act-badge ${action.c}`}>{action.t}</span>
-                        <span className="label">范围：</span>{d.range}
-                    </span>
-                </div>
-                {d.trigger && <div className="stat-row"><span><span className="label">触发：</span>{md(d.trigger)}</span></div>}
-                {d.target && <div className="stat-row"><span><span className="label">目标：</span>{md(d.target)}</span></div>}
-                {attackText && <div className="stat-row"><span><span className="label">较量：</span>{attackText}</span></div>}
-                {d.hit && <div className="indent-block"><span className="lbl-hit">命中：</span>{md(d.hit)}</div>}
-                {d.miss && <div className="indent-block"><span className="lbl-miss">失手：</span>{md(d.miss)}</div>}
-                {d.effect && <div className="indent-block"><span className="lbl-effect">效果：</span>{md(d.effect)}</div>}
-                {d.sustain && <div className="indent-block"><span className="label">维持：</span>{md(d.sustain)}</div>}
-                {d.special && <div className="indent-block"><span className="label">特殊：</span>{md(d.special)}</div>}
-            </div>
-        );
+    if (module === 'traditions' || module === 'paths') {
+        const progression = item as ProgressionItem;
+        const power = powers?.find(power => `power:${power.id}` === selectedFormat);
+        content = power ? <PowerCard item={power} /> : <ProgressionCard module={module} item={progression} summaryOnly={selectedFormat === 'summary'} />;
+    } else if (module === 'moves') {
+        content = <PowerCard item={item as MoveItem} />;
     } else if (module === 'items') {
         const d = item as EquipmentItem;
         content = (
@@ -144,8 +123,8 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
                 {(d.features || []).length > 0 && (
                     <div style={{ marginTop: '15px', borderTop: '2px solid #ccc', paddingTop: '10px' }}>
                         <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '10px', color: '#c0392b' }}>门派特技</div>
-                        {d.features.map((f: { name: string; desc: string }, i: number) => (
-                            <div key={i} style={{ marginBottom: '12px' }}>
+                        {d.features.map((f) => (
+                            <div key={f.id} style={{ marginBottom: '12px' }}>
                                 <div style={{ fontWeight: 'bold' }}>{f.name}:</div>
                                 <div className="indent-block">{md(f.desc)}</div>
                             </div>
@@ -187,8 +166,8 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
 
                 {(d.traits || []).length > 0 && (
                     <div style={{ marginTop: '10px', borderTop: '1px dashed #ccc', paddingTop: '5px' }}>
-                        {d.traits.map((t: { name: string; desc: string }, i: number) => (
-                            <div key={i} style={{ marginBottom: '8px' }}>
+                        {d.traits.map((t) => (
+                            <div key={t.id} style={{ marginBottom: '8px' }}>
                                 <span className="label">{t.name}：</span>
                                 <span>{md(t.desc)}</span>
                             </div>
@@ -199,15 +178,6 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
         );
     } else if (module === 'destinies') {
         const d = item as DestinyItem;
-        // Similar to a Move card (Encounter Power layout usually)
-        // Image 2 doesn't show power, but implies "Racial Power".
-        // Use red header usually if Encounter, but let's stick to Gray or maybe a special color.
-        // Or determine color based on Power Type if I parsed it.
-        // Let's use standard Gray for Destiny, or maybe something special.
-        // Reference says "Substitute for Racial Powers".
-        // Racial powers are usually Encounter.
-        // Let's use Red if type contains "遭遇" or "Encounter", else maybe Green.
-        // Safest is Gray or Red. Let's use 'bg-red' as it's likely an encounter power.
         const headerClass = (d.powerType?.includes('遭遇') || d.powerType?.includes('Encounter')) ? 'bg-red' : 'bg-gray';
 
         const action = ActionMap[d.action as keyof typeof ActionMap] || { t: d.action || '', c: '' };
@@ -232,7 +202,7 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
 
     } else {
         const d = item as GeneralItem;
-        let color = module === 'feats' ? 'bg-gray' : 'bg-green';
+        const color = module === 'feats' ? 'bg-gray' : 'bg-green';
         let meta = Config[module].title.slice(0, 4);
         if (module === 'feats') meta = d.tier || '';
 
@@ -259,12 +229,18 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
     return (
         <div className="preview-panel">
             <div className="toolbar">
-                <button className="btn btn-primary" onClick={() => exportImage(true)}>复制图片</button>
-                <button className="btn" onClick={() => exportImage(false)}>下载 PNG</button>
+                {isProgression && <select aria-label="卡片导出格式" value={selectedFormat} onChange={event => setFormat(event.target.value)}>
+                    <option value="full">完整资源卡</option><option value="summary">概要卡</option>
+                    {powers?.map((power, index) => <option key={power.id} value={`power:${power.id}`}>威能：{power.name || `第 ${index + 1} 张`}</option>)}
+                </select>}
+                <label>预览 <select aria-label="预览缩放" value={scale} onChange={event => setScale(Number(event.target.value))}>
+                    <option value={0.6}>60%</option><option value={0.8}>80%</option><option value={1}>100%</option>
+                </select></label>
+                <button className="btn btn-primary" disabled={exporting} onClick={() => void exportImage(true)}>复制图片</button>
+                <button className="btn" disabled={exporting} onClick={() => void exportImage(false)}>{exporting ? '生成中…' : '下载 PNG'}</button>
             </div>
-            <div ref={cardRef}>
-                {content}
-            </div>
+            {feedback && <p role="status" className="export-feedback">{feedback}</p>}
+            <div className="preview-stage" data-preview-scale style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}><div ref={cardRef}>{content}</div></div>
         </div>
     );
 };

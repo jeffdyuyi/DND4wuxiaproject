@@ -6,7 +6,9 @@ export const Config = {
     destinies: { title: "先天命格库", color: "bg-gray", key: "db_destinies_v5" },
     origins: { title: "江湖出身库", color: "bg-gray", key: "db_origins_v5" },
     feats: { title: "武道造诣库", color: "bg-gray", key: "db_feats_v5" },
-    items: { title: "神兵宝甲库", color: "bg-gold", key: "db_items_v5" }
+    items: { title: "神兵宝甲库", color: "bg-gold", key: "db_items_v5" },
+    traditions: { title: "修行传承库", color: "bg-green", key: "db_traditions_v1" },
+    paths: { title: "成道之途库", color: "bg-gold", key: "db_paths_v1" }
 } as const;
 
 export type ModuleType = keyof typeof Config;
@@ -25,7 +27,9 @@ export const ICONS: Record<ModuleType, string> = {
     destinies: '🔮',
     origins: '🏘️',
     feats: '🧘',
-    items: '🗡️'
+    items: '🗡️',
+    traditions: '📜',
+    paths: '☯️'
 };
 
 export const ActionMap = {
@@ -33,7 +37,11 @@ export const ActionMap = {
     'mov': { t: '身法', c: 'act-mov' },
     'min': { t: '瞬息', c: 'act-min' },
     'free': { t: '随心', c: 'act-free' },
-    'react': { t: '变招', c: 'act-react' }
+    'react': { t: '变招（旧版）', c: 'act-react' },
+    'interrupt': { t: '即时打断', c: 'act-react' },
+    'reaction': { t: '即时反应', c: 'act-react' },
+    'opportunity': { t: '借机动作', c: 'act-react' },
+    'none': { t: '无动作', c: 'act-free' }
 } as const;
 
 export const RangeTypes = {
@@ -51,3 +59,8 @@ export const Shapes = {
 
 export const Stats = ['力量', '体质', '敏捷', '智力', '感知', '魅力'];
 export const Defenses = { 'AC': '格挡', 'Reflex': '身法', 'Fortitude': '护体', 'Will': '定力' };
+
+export const UsageOptions = [
+    { v: 'basic', t: '随意' }, { v: 'special', t: '遭遇' }, { v: 'ultimate', t: '每日' }
+] as const;
+export const ActionOptions = Object.entries(ActionMap).map(([v, item]) => ({ v, t: item.t }));

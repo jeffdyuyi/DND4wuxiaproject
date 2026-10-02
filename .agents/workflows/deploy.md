@@ -1,45 +1,15 @@
 ---
-description: 构建项目并推送到 GitHub Pages 进行部署
+description: 在用户请求发布时验证并部署 GitHub Pages
 ---
 
-# 部署到 GitHub Pages
+# GitHub Pages 发布
 
-本工作流用于将项目构建并部署到 `https://jeffdyuyi.github.io/DND4wuxiaproject/`。
+只在用户明确要求提交或发布时执行。本站 base 为 /DND4wuxiaproject/，推送 main 会触发 .github/workflows/deploy.yml。
 
-## 前提条件
-- 已安装 Node.js 和 npm
-- 已配置 Git 并连接到 GitHub 仓库
-- GitHub 仓库的 Pages 设置已启用，Source 设置为 `gh-pages` 分支
+1. 检查 git status 和本次具体文件的 diff。保留用户已有且与本次无关的修改；不要使用 git add -A。
+2. 必要时按锁文件安装依赖：npm ci。
+3. 完成 npm run lint、npm run typecheck、npm test、npm run build 和相关浏览器验收。
+4. 根据用户授权暂存具体相关文件，使用准确的提交说明；仅在推送已获授权时推送 main。
+5. 检查 Actions 构建与部署结果，再访问站点验证。只有观察到成功才报告发布完成。
 
-## 步骤
-
-// turbo-all
-
-1. 安装依赖（如有必要）
-```
-npm install
-```
-
-2. 本地构建验证（确保无 TypeScript 错误）
-```
-npm run build
-```
-
-3. 推送代码到 main 分支，触发 GitHub Actions 自动部署
-```
-git add -A
-git commit -m "feat: 更新内容"
-git push origin main
-```
-
-4. 访问 GitHub Actions 查看部署状态
-   - 进入仓库的 **Actions** 标签
-   - 等待 "Deploy to GitHub Pages" 工作流完成（绿色对勾）
-
-5. 访问部署地址验证
-   - https://jeffdyuyi.github.io/DND4wuxiaproject/
-
-## 注意事项
-- `vite.config.ts` 中的 `base` 必须设置为 `/DND4wuxiaproject/` 才能正确加载资源
-- GitHub Actions 工作流文件位于 `.github/workflows/deploy.yml`
-- 部署完成通常需要 1-3 分钟
+本地构建不会自动部署。不要把私人的 localStorage 导出、恢复文件或临时测试数据加入仓库。

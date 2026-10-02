@@ -1,0 +1,47 @@
+/* =========================================
+   Card Styles (Wuxia / D&D 4E Hybrid)
+   ========================================= */
+.wuxia-card {
+    width: 420px;
+    background-color: var(--card-bg);
+    border: 2px solid #000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    font-family: "KaiTi", "楷体", serif;
+    color: #000;
+    position: relative;
+    font-size: 15px;
+    line-height: 1.4;
+    margin-bottom: 30px;
+    box-sizing: border-box;
+}
+.card-header { padding: 4px 10px; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; }
+.bg-green { background-color: var(--c-atwill); }
+.bg-red { background-color: var(--c-encounter); }
+.bg-black { background-color: var(--c-daily); }
+.bg-gold { background-color: var(--c-item); }
+.bg-gray { background-color: var(--c-feat); }
+
+.card-title { font-family: "LiSu", "隶书", serif; font-size: 1.6em; letter-spacing: 1px; text-shadow: 1px 1px 0 rgba(0,0,0,0.5); }
+.card-meta { font-family: sans-serif; font-size: 0.85em; font-weight: bold; text-align: right; }
+.flavor { font-style: italic; padding: 6px 10px; color: #444; background-color: #e8e4dc; border-bottom: 1px solid #c5bba8; font-size: 0.9em; margin-bottom: 2px; }
+.stat-row { padding: 3px 10px; display: flex; align-items: flex-start; }
+.stat-row:nth-child(odd) { background: transparent; }
+.stat-row:nth-child(even) { background: rgba(0,0,0,0.05); }
+.label { font-weight: 900; margin-right: 5px; color: #1a1a1a; white-space: nowrap; font-family: sans-serif; font-size: 0.95em; }
+.indent-block { padding: 3px 10px 3px 26px; text-indent: -16px; }
+.lbl-hit { color: var(--c-encounter); font-weight: 900; }
+.lbl-miss { color: #666; font-weight: 900; }
+.lbl-effect { color: var(--c-atwill); font-weight: 900; }
+
+.act-badge { display: inline-block; padding: 1px 5px; border-radius: 2px; font-size: 0.75em; color: white; font-family: sans-serif; margin-right: 5px; transform: translateY(-1px); }
+.act-std { background-color: #444; } .act-mov { background-color: #2e7d32; } .act-min { background-color: #ef6c00; }
+.act-free { background-color: #757575; } .act-react { background-color: #1565c0; }
+.hidden { display: none !important; }
+
+.progression-editor-section { padding: 12px; margin-bottom: 12px; border: 1px solid var(--ui-border); border-radius: 4px; background: #f9f9f9; }
+.progression-hint { font-size: 0.85em; color: #455a64; line-height: 1.6; }
+.progression-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.progression-body { padding: 8px 12px; }
+.progression-heading { margin: 10px 0 0; padding: 5px 10px; background: #e8e4dc; border-top: 1px solid #c5bba8; font-size: 1em; }
+.progression-power { margin: 10px; border: 1px solid #444; }
+.progression-source { padding: 8px 12px; border-top: 1px dashed #c5bba8; color: #555; font-size: 0.85em; overflow-wrap: anywhere; }

@@ -1,0 +1,41 @@
+import type { MoveItem } from '../types';
+import { ActionOptions, UsageOptions } from '../constants';
+import { Input, Text, Select, KeywordSelector, RangeBuilder, AttackBuilder } from './FormHelpers';
+import { moveEntry } from '../utils/reorder';
+
+export function PowerEditor({ item, onChange, embedded = false }: { item: MoveItem; onChange: (item: MoveItem) => void; embedded?: boolean }) {
+    const update = <K extends keyof MoveItem>(key: K, value: MoveItem[K]) => onChange({ ...item, [key]: value });
+    const rules = item.rules ?? [];
+    return <>
+        <Input label="招式 / 威能名称" value={item.name} onChange={value => update('name', value)} />
+        <div className="row">
+            <div className="col"><Input label="威能等级" value={item.level} onChange={value => { if (/^\d*$/.test(value)) update('level', Number(value)); }} /></div>
+            {embedded && <div className="col"><Input label="获得等级" value={item.acquiredLevel} onChange={value => update('acquiredLevel', value)} /></div>}
+        </div>
+        {!embedded && <Input label="所属门派 / 来源" value={item.cls} onChange={value => update('cls', value)} />}
+        <Text label="意境描述" value={item.flavor} onChange={value => update('flavor', value)} />
+        <div className="row"><div className="col"><Select label="使用频率" value={item.type} options={UsageOptions} onChange={value => update('type', value as MoveItem['type'])} /></div>
+            <div className="col"><Select label="动作" value={item.action} options={ActionOptions} onChange={value => update('action', value)} /></div></div>
+        <KeywordSelector value={item.keywords} onChange={value => update('keywords', value)} />
+        <RangeBuilder value={item.range} onChange={value => update('range', value)} />
+        <Input label="触发" value={item.trigger} onChange={value => update('trigger', value)} />
+        <Input label="目标" value={item.target} onChange={value => update('target', value)} />
+        <AttackBuilder att={item.att ?? ''} def={item.def ?? ''} onUpdate={(att, def) => onChange({ ...item, att, def })} />
+        {(['hit', 'miss', 'effect', 'sustain', 'special'] as const).map((key, index) => <Text key={key} label={['命中', '失手', '效果', '维持', '要求 / 特殊规则'][index]} value={item[key]} onChange={value => update(key, value)} />)}
+        <details className="editor-group" open={rules.length > 0}>
+            <summary>附加规则段（次攻击、强化、后续效果等）</summary>
+            {rules.map((rule, index) => <section className="progression-editor-section" key={rule.id}>
+                <Input label="段落标题" value={rule.title} onChange={title => update('rules', rules.map(current => current.id === rule.id ? { ...current, title } : current))} />
+                <Text label="完整规则" value={rule.text} onChange={text => update('rules', rules.map(current => current.id === rule.id ? { ...current, text } : current))} />
+                <div className="toolbar"><button type="button" className="btn" disabled={index === 0} onClick={() => update('rules', moveEntry(rules, index, -1))}>上移</button>
+                    <button type="button" className="btn" disabled={index === rules.length - 1} onClick={() => update('rules', moveEntry(rules, index, 1))}>下移</button>
+                    <button type="button" className="btn" onClick={() => update('rules', rules.filter(current => current.id !== rule.id))}>删除规则段</button></div>
+            </section>)}
+            <button type="button" className="btn" onClick={() => update('rules', [...rules, { id: crypto.randomUUID(), title: '', text: '' }])}>+ 添加规则段</button>
+        </details>
+        <details className="editor-group"><summary>来源与原文（原文不印在卡片上）</summary>
+            <Input label="来源 / 原版参考" value={item.source} onChange={value => update('source', value)} />
+            <Text label="原版全文 / 未拆分内容" value={item.sourceText} onChange={value => update('sourceText', value)} />
+        </details>
+    </>;
+}
