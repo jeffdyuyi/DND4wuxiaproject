@@ -1,3 +1,5 @@
+import { TerminologyContext } from '../hooks/TerminologyContext';
+import { defaultTerminology, type Terminology } from '../utils/terminology';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { CardContent } from './Preview';
@@ -7,18 +9,18 @@ import { makeArchive } from '../utils/archive';
 import { cardArchive, captureCard } from '../utils/card-image';
 import { safeFilename, packFiles, downloadBlob, MAX_FILE_BYTES } from '../utils/card-files';
 
-export async function exportCardBundle(entries: { module: ModuleType; item: Item }[], images: boolean, progress: (message: string) => void) {
+export async function exportCardBundle(entries: { module: ModuleType; item: Item }[], images: boolean, progress: (message: string) => void, terminology: Terminology = defaultTerminology()) {
     if (!entries.length || entries.length > 200) throw new Error('一次请选择 1–200 张卡片');
     const files: Record<string, Uint8Array> = {}; let bytes = 0;
     const add = (name: string, content: Uint8Array) => { bytes += content.length; if (bytes > MAX_FILE_BYTES) throw new Error('打包数据超过 100 MB，请分批导出'); files[name] = content; };
     for (const [index, entry] of entries.entries()) {
         progress(`正在打包 ${index + 1}/${entries.length}：${entry.item.name}`);
         const name = `${String(index + 1).padStart(3, '0')}_${safeFilename(entry.item.name)}`;
-        add(`${name}.json`, new TextEncoder().encode(JSON.stringify(makeArchive({ [entry.module]: [entry.item] }))));
+        add(`${name}.json`, new TextEncoder().encode(JSON.stringify(makeArchive({ [entry.module]: [entry.item] }, terminology))));
         if (images) {
             const stage = document.createElement('div'); stage.className = 'batch-card-stage'; document.body.appendChild(stage);
             const root = createRoot(stage);
-            try { flushSync(() => root.render(<CardContent module={entry.module} item={entry.item} />)); const blob = await captureCard(stage, cardArchive(entry.module, entry.item)); add(`${name}.png`, new Uint8Array(await blob.arrayBuffer())); }
+            try { flushSync(() => root.render(<TerminologyContext.Provider value={{ terminology, update: () => {}, collect: () => {} }}><CardContent module={entry.module} item={entry.item} /></TerminologyContext.Provider>)); const blob = await captureCard(stage, { ...cardArchive(entry.module, entry.item), terminology }); add(`${name}.png`, new Uint8Array(await blob.arrayBuffer())); }
             finally { root.unmount(); stage.remove(); }
         }
     }

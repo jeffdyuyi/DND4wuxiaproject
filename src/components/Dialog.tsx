@@ -1,3 +1,4 @@
+import { TermDisplay } from './TermDisplay';
 import { useEffect, useRef, type ReactNode } from 'react';
 
 export function Dialog({ title, children, onCancel, className = '' }: { title: string; children: ReactNode; onCancel: () => void; className?: string }) {
@@ -8,6 +9,6 @@ export function Dialog({ title, children, onCancel, className = '' }: { title: s
         return () => dialog?.close();
     }, []);
     return <dialog ref={ref} className={`dialog ${className}`} aria-label={title} onCancel={event => { event.preventDefault(); onCancel(); }}>
-        <h2>{title}</h2>{children}
+        <h2>{<TermDisplay>{title}</TermDisplay>}</h2>{<TermDisplay>{children}</TermDisplay>}
     </dialog>;
 }

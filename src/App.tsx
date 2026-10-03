@@ -1,3 +1,4 @@
+import { TermDisplay } from './components/TermDisplay';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import type { TemplateDraft } from './utils/templates';
 import { Sidebar } from './components/Sidebar';
@@ -118,7 +119,7 @@ function App() {
   const exportItems = (ids: string[]) => downloadJSON(makeArchive({ [module]: workingDB[module].filter(item => ids.includes(item.id)) }), `吾侠_${Config[module].title}_资源.json`);
   const bundleEntries = async (entries: { module: ModuleType; item: Item }[], images: boolean) => {
     if (packing) return; setPacking(true);
-    try { const { exportCardBundle } = await import('./components/card-export'); await exportCardBundle(entries, images, setNotice); setNotice('卡片 ZIP 已打包下载，可导回继续编辑。'); }
+    try { const { exportCardBundle } = await import('./components/card-export'); await exportCardBundle(entries, images, setNotice, library.terminology); setNotice('卡片 ZIP 已打包下载，可导回继续编辑。'); }
     catch (error) { setNotice(`打包失败：${error instanceof Error ? error.message : '请减少数量重试'}`); }
     finally { setPacking(false); }
   };
@@ -140,8 +141,8 @@ function App() {
   }}>
     {showCards && <CardLibraryDialog db={workingDB} busy={packing} status={notice} onBundle={(entries, images) => void bundleEntries(entries, images)} onClose={() => setShowCards(false)} />}
     {saveAs && currentItem && <SaveAsDialog name={currentItem.name} onClose={() => setSaveAs(false)} onSave={name => { saveCard(true, name); setSaveAs(false); }} />}
-    {pendingNavigation && <Dialog title="当前卡片尚未保存" onCancel={() => setPendingNavigation(null)}><p>请选择如何处理修改，再离开当前卡片。</p><div className="dialog-actions"><button className="btn" onClick={() => setPendingNavigation(null)}>继续编辑</button><button className="btn" onClick={() => { const action = pendingNavigation; setDraft(null); setPendingNavigation(null); performNavigation(action); }}>放弃修改</button><button className="btn" onClick={() => { const next = saveCard(true); const action = pendingNavigation; setPendingNavigation(null); performNavigation(action, next); }}>复制保存</button><button className="btn btn-primary" onClick={() => { const next = saveCard(); const action = pendingNavigation; setPendingNavigation(null); performNavigation(action, next); }}>覆盖保存</button></div></Dialog>}
-    {showTemplates && <Suspense fallback={<div className="feedback" role="status">正在打开资源管理…</div>}><TemplatesDialog currentModule={module} authorBytes={new TextEncoder().encode(JSON.stringify({ db, terminology: library.terminology })).byteLength} onCopy={copyTemplates} onClose={() => setShowTemplates(false)} /></Suspense>}
+    {pendingNavigation && <Dialog title="当前卡片尚未保存" onCancel={() => setPendingNavigation(null)}><p><TermDisplay>{"请选择如何处理修改，再离开当前卡片。"}</TermDisplay></p><div className="dialog-actions"><button className="btn" onClick={() => setPendingNavigation(null)}><TermDisplay>{"继续编辑"}</TermDisplay></button><button className="btn" onClick={() => { const action = pendingNavigation; setDraft(null); setPendingNavigation(null); performNavigation(action); }}><TermDisplay>{"放弃修改"}</TermDisplay></button><button className="btn" onClick={() => { const next = saveCard(true); const action = pendingNavigation; setPendingNavigation(null); performNavigation(action, next); }}><TermDisplay>{"复制保存"}</TermDisplay></button><button className="btn btn-primary" onClick={() => { const next = saveCard(); const action = pendingNavigation; setPendingNavigation(null); performNavigation(action, next); }}><TermDisplay>{"覆盖保存"}</TermDisplay></button></div></Dialog>}
+    {showTemplates && <Suspense fallback={<div className="feedback" role="status"><TermDisplay>{"正在打开资源管理…"}</TermDisplay></div>}><TemplatesDialog currentModule={module} authorBytes={new TextEncoder().encode(JSON.stringify({ db, terminology: library.terminology })).byteLength} onCopy={copyTemplates} onClose={() => setShowTemplates(false)} /></Suspense>}
     {showTerms && <TerminologyDialog onClose={() => setShowTerms(false)} />}
     {showDisclaimer && <DisclaimerModal onClose={() => setShowDisclaimer(false)} />}
     {confirmation && <ConfirmModal
@@ -153,29 +154,28 @@ function App() {
     <div className="workspace">
       <header className="workspace-toolbar">
         <div className="workspace-brand">
-          <button type="button" className="brand-button" aria-label="吾侠：查看作者信息" aria-haspopup="dialog" onClick={() => setShowDisclaimer(true)}>吾侠</button>
-          {viewMode !== 'home' && <span className="workspace-module">{Config[module].title}</span>}
+          <button type="button" className="brand-button" aria-label="吾侠：查看作者信息" aria-haspopup="dialog" onClick={() => setShowDisclaimer(true)}><TermDisplay>{"吾侠"}</TermDisplay></button>
+          {viewMode !== 'home' && <span className="workspace-module">{<TermDisplay>{Config[module].title}</TermDisplay>}</span>}
         </div>
         <span role="status" className={library.blocked || library.dirty || draft ? 'save-status save-warning' : 'save-status'}>
-          {library.blocked ? '保存已暂停' : library.error ? '保存失败，请重试' : draft ? '草稿未保存' : library.dirty ? '等待保存' : library.savedAt ? '已保存到本地 · ' + new Date(library.savedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '本地数据就绪'}
+          {<TermDisplay>{library.blocked ? '保存已暂停' : library.error ? '保存失败，请重试' : draft ? '草稿未保存' : library.dirty ? '等待保存' : library.savedAt ? '已保存到本地 · ' + new Date(library.savedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '本地数据就绪'}</TermDisplay>}
         </span>
-        <button type="button" className="btn" onClick={exportLibrary}>备份全库</button>
-        <button type="button" className="btn" onClick={() => navigate({ kind: 'cards' })}>卡牌库</button>
-        <button type="button" className="btn" onClick={() => setShowTerms(true)}>术语库</button>
-        <button type="button" className="btn" onClick={() => navigate({ kind: 'templates' })}>资源管理</button>
-        <label className="btn import-button">导入全库／卡片<input aria-label="导入资源 JSON、PNG 或 ZIP" type="file" accept=".json,.png,.zip" onChange={event => {
+        <button type="button" className="btn" onClick={exportLibrary}><TermDisplay>{"备份全库"}</TermDisplay></button>
+        <button type="button" className="btn" onClick={() => navigate({ kind: 'cards' })}><TermDisplay>{"卡牌库"}</TermDisplay></button>
+        <button type="button" className="btn" onClick={() => setShowTerms(true)}><TermDisplay>{"关键词与术语"}</TermDisplay></button>
+        <button type="button" className="btn" onClick={() => navigate({ kind: 'templates' })}><TermDisplay>{"资源管理"}</TermDisplay></button>
+        <label className="btn import-button"><TermDisplay>{"导入全库／卡片"}</TermDisplay><input aria-label="导入资源 JSON、PNG 或 ZIP" type="file" accept=".json,.png,.zip" onChange={event => {
           const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file);
         }} /></label>
-        {library.dirty && !library.blocked && <button type="button" className="btn" onClick={library.retry}>重试保存</button>}
+        {library.dirty && !library.blocked && <button type="button" className="btn" onClick={library.retry}><TermDisplay>{"重试保存"}</TermDisplay></button>}
       </header>
       {library.blocked && <div className="feedback feedback-error" role="alert">
-        {library.issues.join('；')}。原始数据未被覆盖。
-        <button type="button" className="btn" onClick={() => { downloadJSON({ rawStorage: library.recovery, issues: library.issues }, '吾侠_存储恢复原文.json'); setRecoveryExported(true); }}>导出恢复原文</button>
-        <button type="button" className="btn" disabled={!recoveryExported} onClick={() => setConfirmation({ kind: 'recovery' })}>使用当前数据继续</button>
+        {<TermDisplay>{library.issues.join('；')}</TermDisplay>}<TermDisplay>{"。原始数据未被覆盖。"}</TermDisplay><button type="button" className="btn" onClick={() => { downloadJSON({ rawStorage: library.recovery, issues: library.issues }, '吾侠_存储恢复原文.json'); setRecoveryExported(true); }}><TermDisplay>{"导出恢复原文"}</TermDisplay></button>
+        <button type="button" className="btn" disabled={!recoveryExported} onClick={() => setConfirmation({ kind: 'recovery' })}><TermDisplay>{"使用当前数据继续"}</TermDisplay></button>
       </div>}
-      {library.error && <div className="feedback feedback-error" role="alert">{library.error}</div>}
-      {notice && <div className="feedback" role="status">{notice}<button className="btn" onClick={() => setNotice('')}>关闭</button></div>}
-      {viewMode === 'tool' && <div className="card-tools"><button className="btn btn-primary" disabled={!currentItem || library.blocked} onClick={() => saveCard()}>覆盖保存</button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => saveCard(true)}>复制保存</button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => setSaveAs(true)}>不覆盖另存</button><button className="btn" disabled={!draft} onClick={() => setDraft(null)}>放弃修改</button><label className="btn import-button">导入卡片<input aria-label="当前工具导入 JSON、PNG 或 ZIP" type="file" accept=".json,.png,.zip" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file, module); }} /></label><label className="btn import-button">导入 4E 模板<input aria-label="当前工具直接导入 4E 模板 JSON" type="file" accept=".json" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file, module); }} /></label><small>修改先保留为草稿；选择保存后写入本地。</small></div>}
+      {library.error && <div className="feedback feedback-error" role="alert">{<TermDisplay>{library.error}</TermDisplay>}</div>}
+      {notice && <div className="feedback" role="status">{<TermDisplay>{notice}</TermDisplay>}<button className="btn" onClick={() => setNotice('')}><TermDisplay>{"关闭"}</TermDisplay></button></div>}
+      {viewMode === 'tool' && <div className="card-tools"><button className="btn btn-primary" disabled={!currentItem || library.blocked} onClick={() => saveCard()}><TermDisplay>{"覆盖保存"}</TermDisplay></button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => saveCard(true)}><TermDisplay>{"复制保存"}</TermDisplay></button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => setSaveAs(true)}><TermDisplay>{"不覆盖另存"}</TermDisplay></button><button className="btn" disabled={!draft} onClick={() => setDraft(null)}><TermDisplay>{"放弃修改"}</TermDisplay></button><label className="btn import-button"><TermDisplay>{"导入卡片"}</TermDisplay><input aria-label="当前工具导入 JSON、PNG 或 ZIP" type="file" accept=".json,.png,.zip" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file, module); }} /></label><label className="btn import-button"><TermDisplay>{"导入 4E 模板"}</TermDisplay><input aria-label="当前工具直接导入 4E 模板 JSON" type="file" accept=".json" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file, module); }} /></label><small><TermDisplay>{"修改先保留为草稿；选择保存后写入本地。"}</TermDisplay></small></div>}
       <main className="workspace-content">
         {viewMode === 'home' ? <HomePage db={db} onNavigate={selectModule} searchTerm={homeSearch} onSearch={setHomeSearch} /> : <>
           <ListPanel key={`list:${module}`} items={workingDB[module]} currentItemId={currentItemId} onSelect={id => selectModule(module, id)}

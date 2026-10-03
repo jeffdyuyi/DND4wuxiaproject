@@ -1,3 +1,4 @@
+import { TermDisplay } from './TermDisplay';
 import { useEffect, useRef, useState } from 'react';
 import { clearTemplatePack, importTemplatePack, type TemplatePack } from '../utils/template-loader';
 import type { TemplateIndex } from '../utils/templates';
@@ -90,24 +91,24 @@ export function ResourceManagerPanel({ onActivate, authorBytes }: { onActivate: 
     const largest = [...packs].sort((a, b) => b.bytes - a.bytes)[0];
     return <>
         <section className="cache-usage manager-card" aria-label="浏览器缓存占用">
-            <div className="manager-heading"><h3>▤ 浏览器缓存占用</h3><span>{usage === undefined ? '占用未知' : formatBytes(usage)} / {quota ? formatBytes(quota) : '配额由浏览器决定'} {percentage !== null && <small>{percentage.toFixed(1)}%</small>}</span></div>
+            <div className="manager-heading"><h3><TermDisplay>{"▤ 浏览器缓存占用"}</TermDisplay></h3><span>{<TermDisplay>{usage === undefined ? '占用未知' : formatBytes(usage)}</TermDisplay>}<TermDisplay>{" / "}</TermDisplay>{<TermDisplay>{quota ? formatBytes(quota) : '配额由浏览器决定'}</TermDisplay>} {percentage !== null && <small>{<TermDisplay>{percentage.toFixed(1)}</TermDisplay>}<TermDisplay>{"%"}</TermDisplay></small>}</span></div>
             <progress max={100} value={percentage ?? undefined} aria-label="同源存储占用比例" />
-            <div className="cache-breakdown"><span>初始资料与导入包 <strong>{formatBytes(logicalBytes)}</strong></span><span>作者存档与术语（估算） <strong>{formatBytes(authorBytes)}</strong></span><span>最大资料包 <strong>{largest ? `${largest.name} · ${formatBytes(largest.bytes)}` : '尚未加载'}</strong></span></div>
-            <p className="progression-hint">资料包使用 IndexedDB，不受 localStorage 的约 5 MB 限制。上方为整个同源站点的估算；资料包大小为 JSON 大小，两者不会完全一致。</p>
-            <div className="toolbar"><span>{persistent === null ? '缓存保留状态未知' : persistent ? '浏览器已允许持久保留' : '普通缓存，可申请保留'}</span><button className="btn" disabled={busy || persistent === true || !navigator.storage?.persist} onClick={() => void run(async () => { setProgress('正在申请保留缓存…'); const allowed = await navigator.storage.persist(); setPersistent(allowed); if (!allowed) setError('浏览器未批准持久保留，现有缓存仍可使用。'); })}>申请保留缓存</button></div>
+            <div className="cache-breakdown"><span><TermDisplay>{"初始资料与导入包 "}</TermDisplay><strong>{<TermDisplay>{formatBytes(logicalBytes)}</TermDisplay>}</strong></span><span><TermDisplay>{"作者存档与术语（估算） "}</TermDisplay><strong>{<TermDisplay>{formatBytes(authorBytes)}</TermDisplay>}</strong></span><span><TermDisplay>{"最大资料包 "}</TermDisplay><strong>{<TermDisplay>{largest ? `${largest.name} · ${formatBytes(largest.bytes)}` : '尚未加载'}</TermDisplay>}</strong></span></div>
+            <p className="progression-hint"><TermDisplay>{"资料包使用 IndexedDB，不受 localStorage 的约 5 MB 限制。上方为整个同源站点的估算；资料包大小为 JSON 大小，两者不会完全一致。"}</TermDisplay></p>
+            <div className="toolbar"><span>{<TermDisplay>{persistent === null ? '缓存保留状态未知' : persistent ? '浏览器已允许持久保留' : '普通缓存，可申请保留'}</TermDisplay>}</span><button className="btn" disabled={busy || persistent === true || !navigator.storage?.persist} onClick={() => void run(async () => { setProgress('正在申请保留缓存…'); const allowed = await navigator.storage.persist(); setPersistent(allowed); if (!allowed) setError('浏览器未批准持久保留，现有缓存仍可使用。'); })}><TermDisplay>{"申请保留缓存"}</TermDisplay></button></div>
         </section>
         <section className="pack-manager manager-card" aria-label="已加载资源包">
-            <div className="manager-heading"><h3>▣ 资源包</h3><small>{packs.length} 个包 · {packs.reduce((sum, pack) => sum + pack.count, 0)} 条资源</small></div>
-            <p className="progression-hint">初始资料获取一次后自动从本地恢复；切换资料包查看模板，草稿不会随缓存删除。</p>
-            <div className="pack-actions"><button className="btn btn-primary" disabled={busy} onClick={() => void fetchInitial()}>{packs.some(pack => pack.id === '4e-next') ? '更新 4E NEXT' : '获取 4E NEXT 初始资料'}</button><label className={`btn import-button ${busy ? 'disabled' : ''}`}>导入资料包<input disabled={busy} aria-label="导入初始资料包" type="file" accept=".json,application/json" onChange={event => { importFile(event.target.files?.[0]); event.target.value = ''; }} /></label></div>
-            {busy && <div role="status" className="cache-progress">{progress}{(progress.includes('下载') || progress.includes('检查 4E')) && <button className="btn" onClick={() => operation.current?.abort()}>取消下载</button>}</div>}
-            {error && <p role="alert" className="feedback feedback-error">{error}</p>}
-            {!packs.length && !busy && <div className="empty-state">尚未加载资源包。获取初始资料，或导入已有的 4E NEXT JSON 资料包。</div>}
+            <div className="manager-heading"><h3><TermDisplay>{"▣ 资源包"}</TermDisplay></h3><small>{<TermDisplay>{packs.length}</TermDisplay>}<TermDisplay>{" 个包 · "}</TermDisplay>{<TermDisplay>{packs.reduce((sum, pack) => sum + pack.count, 0)}</TermDisplay>}<TermDisplay>{" 条资源"}</TermDisplay></small></div>
+            <p className="progression-hint"><TermDisplay>{"初始资料获取一次后自动从本地恢复；切换资料包查看模板，草稿不会随缓存删除。"}</TermDisplay></p>
+            <div className="pack-actions"><button className="btn btn-primary" disabled={busy} onClick={() => void fetchInitial()}>{<TermDisplay>{packs.some(pack => pack.id === '4e-next') ? '更新 4E NEXT' : '获取 4E NEXT 初始资料'}</TermDisplay>}</button><label className={`btn import-button ${busy ? 'disabled' : ''}`}><TermDisplay>{"导入资料包"}</TermDisplay><input disabled={busy} aria-label="导入初始资料包" type="file" accept=".json,application/json" onChange={event => { importFile(event.target.files?.[0]); event.target.value = ''; }} /></label></div>
+            {busy && <div role="status" className="cache-progress">{<TermDisplay>{progress}</TermDisplay>}{(progress.includes('下载') || progress.includes('检查 4E')) && <button className="btn" onClick={() => operation.current?.abort()}><TermDisplay>{"取消下载"}</TermDisplay></button>}</div>}
+            {error && <p role="alert" className="feedback feedback-error">{<TermDisplay>{error}</TermDisplay>}</p>}
+            {!packs.length && !busy && <div className="empty-state"><TermDisplay>{"尚未加载资源包。获取初始资料，或导入已有的 4E NEXT JSON 资料包。"}</TermDisplay></div>}
             {packs.map(pack => <article key={pack.id} className={`pack-card ${active === pack.id ? 'active' : ''}`}>
-                <button className="pack-select" disabled={busy} onClick={() => void run(signal => activate(pack.id, signal))}><strong>{pack.name}</strong><small>{pack.count} 条 · {formatBytes(pack.bytes)} {active === pack.id ? '· 当前使用' : ''}</small></button>
-                <small className="pack-version">{pack.sourceVersion}</small><small>缓存于 {new Date(pack.downloadedAt).toLocaleString('zh-CN')}</small>
-                <div className="toolbar"><button className="btn" disabled={busy} onClick={() => void run(async signal => { const value = await readPack(pack.id); signal.throwIfAborted(); if (!value) throw new Error('资料包不存在'); downloadJSON(value, `${pack.name}.json`); })}>导出</button><button className="btn" disabled={busy} onClick={() => setPendingDelete(pack.id)}>删除缓存</button></div>
-                {pendingDelete === pack.id && <div className="cache-delete"><span>确认删除此资料包缓存？</span><button className="btn btn-danger" disabled={busy} onClick={() => void remove(pack.id)}>确认删除</button><button className="btn" disabled={busy} onClick={() => setPendingDelete('')}>取消</button></div>}
+                <button className="pack-select" disabled={busy} onClick={() => void run(signal => activate(pack.id, signal))}><strong>{<TermDisplay>{pack.name}</TermDisplay>}</strong><small>{<TermDisplay>{pack.count}</TermDisplay>}<TermDisplay>{" 条 · "}</TermDisplay>{<TermDisplay>{formatBytes(pack.bytes)}</TermDisplay>} {<TermDisplay>{active === pack.id ? '· 当前使用' : ''}</TermDisplay>}</small></button>
+                <small className="pack-version">{<TermDisplay>{pack.sourceVersion}</TermDisplay>}</small><small><TermDisplay>{"缓存于 "}</TermDisplay>{<TermDisplay>{new Date(pack.downloadedAt).toLocaleString('zh-CN')}</TermDisplay>}</small>
+                <div className="toolbar"><button className="btn" disabled={busy} onClick={() => void run(async signal => { const value = await readPack(pack.id); signal.throwIfAborted(); if (!value) throw new Error('资料包不存在'); downloadJSON(value, `${pack.name}.json`); })}><TermDisplay>{"导出"}</TermDisplay></button><button className="btn" disabled={busy} onClick={() => setPendingDelete(pack.id)}><TermDisplay>{"删除缓存"}</TermDisplay></button></div>
+                {pendingDelete === pack.id && <div className="cache-delete"><span><TermDisplay>{"确认删除此资料包缓存？"}</TermDisplay></span><button className="btn btn-danger" disabled={busy} onClick={() => void remove(pack.id)}><TermDisplay>{"确认删除"}</TermDisplay></button><button className="btn" disabled={busy} onClick={() => setPendingDelete('')}><TermDisplay>{"取消"}</TermDisplay></button></div>}
             </article>)}
         </section>
     </>;

@@ -42,7 +42,7 @@ export function duplicateResource<T extends Item>(item: T): T {
     return copy;
 }
 
-export function resourceSearchText(item: Item): string {
+export function resourceSearchText(item: Item, display: (text: string) => string = text => text): string {
     const text: string[] = [];
     const collect = (value: unknown, key = ''): void => {
         if (key === 'id') return;
@@ -51,13 +51,13 @@ export function resourceSearchText(item: Item): string {
         else if (value && typeof value === 'object') Object.entries(value).forEach(([k, v]) => collect(v, k));
     };
     collect(item);
-    return text.join(' ').toLocaleLowerCase();
+    return display(text.join(' ')).toLocaleLowerCase();
 }
 
-export function searchResources(db: DB, term: string): { module: ModuleType; item: Item }[] {
+export function searchResources(db: DB, term: string, display: (text: string) => string = text => text): { module: ModuleType; item: Item }[] {
     const query = term.trim().toLocaleLowerCase();
     if (!query) return [];
     return modules.flatMap(module => db[module]
-        .filter(item => resourceSearchText(item).includes(query))
+        .filter(item => resourceSearchText(item).includes(query) || resourceSearchText(item, display).includes(query))
         .map(item => ({ module, item })));
 }

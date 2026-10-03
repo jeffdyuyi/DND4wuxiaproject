@@ -1,3 +1,4 @@
+import { TermDisplay } from './TermDisplay';
 import { HeaderColorEditor } from './HeaderColorEditor';
 
 import React from 'react';
@@ -17,7 +18,7 @@ interface EditorProps {
 }
 
 export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
-    if (!item) return <div className="editor-panel">请选择或新建条目</div>;
+    if (!item) return <div className="editor-panel"><TermDisplay>{"请选择或新建条目"}</TermDisplay></div>;
 
     if (module === 'traditions' || module === 'paths') {
         return <ProgressionEditor module={module} item={item as ProgressionItem} onChange={onChange} />;

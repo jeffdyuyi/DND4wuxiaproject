@@ -1,7 +1,8 @@
+import { TermDisplay } from './TermDisplay';
 import { useId, useRef, useState } from 'react';
 import { useTerminology } from '../hooks/TerminologyContext';
 import { TermCategories, type TermCategory } from '../utils/terminology';
-import { ActionMap, Defenses, UsageOptions } from '../constants';
+import { createTermTranslator, termName } from '../utils/term-display';
 
 /** Suggestions never prevent free text or rewrite a previously authored value. */
 export function TermInput({ label, value = '', categories, collectAs = categories[0] , onChange }: {
@@ -9,13 +10,15 @@ export function TermInput({ label, value = '', categories, collectAs = categorie
 }) {
     const id = useId();
     const { terminology, collect } = useTerminology();
+    const display = createTermTranslator(terminology);
+    const canonical = createTermTranslator(terminology, true);
     const words = [...new Set(terminology.entries.filter(term => !term.hidden && categories.includes(term.category)).map(term => term.label))];
     const remember = (text: string) => {
         // An existing implement/armor suggestion must not also become a weapon group.
         if (!terminology.entries.some(term => categories.includes(term.category) && term.label === text.trim())) collect(collectAs, text);
     };
-    return <div className="form-group"><label htmlFor={id}>{label}</label>
-        <input id={id} className="form-control" value={value} list={`${id}-words`} onChange={event => onChange(event.target.value)}
+    return <div className="form-group"><label htmlFor={id}>{<TermDisplay>{label}</TermDisplay>}</label>
+        <input id={id} className="form-control" value={display(value)} list={`${id}-words`} onChange={event => onChange(canonical(event.target.value))}
             onBlur={event => remember(event.target.value)} onKeyDown={event => {
                 if (event.key === 'Enter') { event.preventDefault(); remember(event.currentTarget.value); }
             }} />
@@ -28,22 +31,26 @@ export function RuleText({ label, value = '', onChange }: { label: string; value
     const ref = useRef<HTMLTextAreaElement>(null);
     const [category, setCategory] = useState<TermCategory>('status');
     const { terminology } = useTerminology();
-    return <div className="form-group"><label htmlFor={id}>{label}</label>
-        <textarea ref={ref} id={id} className="form-control" value={value} onChange={event => onChange(event.target.value)} />
-        <details className="term-custom"><summary>插入术语</summary><div className="row">
+    const display = createTermTranslator(terminology);
+    const canonical = createTermTranslator(terminology, true);
+    return <div className="form-group"><label htmlFor={id}>{<TermDisplay>{label}</TermDisplay>}</label>
+        <textarea ref={ref} id={id} className="form-control" value={display(value)} onChange={event => onChange(canonical(event.target.value))} />
+        <details className="term-custom"><summary><TermDisplay>{"插入术语"}</TermDisplay></summary><div className="row">
             <select aria-label={`${label}的术语分类`} value={category} onChange={event => setCategory(event.target.value as TermCategory)}>
-                {Object.entries(TermCategories).map(([key, title]) => <option key={key} value={key}>{title}</option>)}
+                {Object.entries(TermCategories).map(([key, title]) => <option key={key} value={key}>{<TermDisplay>{title}</TermDisplay>}</option>)}
             </select>
             <select aria-label={`插入${label}的术语`} value="" onChange={event => {
                 const word = event.target.value;
                 if (!word) return;
-                const start = ref.current?.selectionStart ?? value.length;
+                const shown = display(value);
+                const start = ref.current?.selectionStart ?? shown.length;
                 const end = ref.current?.selectionEnd ?? start;
-                onChange(value.slice(0, start) + word + value.slice(end));
-                requestAnimationFrame(() => { ref.current?.focus(); ref.current?.setSelectionRange(start + word.length, start + word.length); });
+                const inserted = display(word);
+                onChange(canonical(shown.slice(0, start) + inserted + shown.slice(end)));
+                requestAnimationFrame(() => { ref.current?.focus(); ref.current?.setSelectionRange(start + inserted.length, start + inserted.length); });
             }}>
-                <option value="">选择要插入的词…</option>
-                {terminology.entries.filter(term => term.category === category && !term.hidden).map(term => <option key={term.id} value={term.label}>{term.label}</option>)}
+                <option value=""><TermDisplay>{"选择要插入的词…"}</TermDisplay></option>
+                {terminology.entries.filter(term => term.category === category && !term.hidden).map(term => <option key={term.id} value={term.original || term.value}>{<TermDisplay>{term.label}</TermDisplay>}</option>)}
             </select>
         </div></details>
     </div>;
@@ -57,23 +64,23 @@ export function TermSelect({ label, category, value = '', snapshot, emptyLabel, 
     const { terminology, collect } = useTerminology();
     const entries = terminology.entries.filter(term => term.category === category && !term.hidden);
     // Keep old/custom values selectable, including a saved display name from an older vocabulary.
-    const current = entries.find(term => term.value === value);
-    const originalLabel = category === 'defense' ? Defenses[value as keyof typeof Defenses] : category === 'action' ? ActionMap[value as keyof typeof ActionMap]?.t : UsageOptions.find(option => option.v === value)?.t;
-    const savedLabel = snapshot ?? originalLabel;
-    const keepSnapshot = value && savedLabel && savedLabel !== current?.label;
+    const current = terminology.entries.find(term => term.category === category && term.value === value);
+    const savedLabel = snapshot;
+    const keepSnapshot = value && savedLabel && !current;
+    if (current?.hidden) entries.push(current);
     const savedOption = `${id}-snapshot`;
-    return <div className="form-group"><label htmlFor={id}>{label}</label>
+    return <div className="form-group"><label htmlFor={id}>{<TermDisplay>{label}</TermDisplay>}</label>
         <select id={id} className="form-control" value={keepSnapshot ? savedOption : value} onChange={event => {
             const selected = event.target.value;
             if (selected === savedOption) return;
             onChange(selected, entries.find(term => term.value === selected)?.label ?? selected);
         }}>
-            {emptyLabel && <option value="">{emptyLabel}</option>}
-            {keepSnapshot && <option value={savedOption}>{savedLabel}（卡片原有名称）</option>}
-            {value && !current && !keepSnapshot && <option value={value}>{snapshot || value}（卡片原有值）</option>}
-            {entries.map(term => <option key={term.id} value={term.value}>{term.label}</option>)}
+            {emptyLabel && <option value="">{<TermDisplay>{emptyLabel}</TermDisplay>}</option>}
+            {keepSnapshot && <option value={savedOption}>{<TermDisplay>{savedLabel}</TermDisplay>}<TermDisplay>{"（卡片原有名称）"}</TermDisplay></option>}
+            {value && !current && !keepSnapshot && <option value={value}>{<TermDisplay>{snapshot || value}</TermDisplay>}<TermDisplay>{"（卡片原有值）"}</TermDisplay></option>}
+            {entries.map(term => <option key={term.id} value={term.value}>{<TermDisplay>{termName(term)}</TermDisplay>}</option>)}
         </select>
-        {category !== 'usage' && <details className="term-custom"><summary>自定义{label}</summary>
+        {category !== 'usage' && <details className="term-custom"><summary><TermDisplay>{"自定义"}</TermDisplay>{<TermDisplay>{label}</TermDisplay>}</summary>
             <input className="form-control" aria-label={`输入自定义${label}`} placeholder="输入完整名称后按回车使用" onKeyDown={event => {
                 if (event.key !== 'Enter') return;
                 event.preventDefault();

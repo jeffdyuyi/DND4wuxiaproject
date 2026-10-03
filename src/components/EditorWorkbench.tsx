@@ -1,3 +1,4 @@
+import { TermDisplay } from './TermDisplay';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode, CSSProperties } from 'react';
 
@@ -59,18 +60,18 @@ export function EditorWorkbench({ editor, preview, resourceId }: { editor: React
                 event.currentTarget.querySelector<HTMLButtonElement>(`#${next}-tab`)?.focus();
             }
         }}>
-            <button id="edit-tab" role="tab" tabIndex={pane === 'edit' ? 0 : -1} aria-controls="edit-pane" aria-selected={pane === 'edit'} onClick={() => setPane('edit')}>编辑内容</button>
-            <button id="preview-tab" role="tab" tabIndex={pane === 'preview' ? 0 : -1} aria-controls="preview-pane" aria-selected={pane === 'preview'} onClick={() => setPane('preview')}>卡片预览</button>
+            <button id="edit-tab" role="tab" tabIndex={pane === 'edit' ? 0 : -1} aria-controls="edit-pane" aria-selected={pane === 'edit'} onClick={() => setPane('edit')}><TermDisplay>{"编辑内容"}</TermDisplay></button>
+            <button id="preview-tab" role="tab" tabIndex={pane === 'preview' ? 0 : -1} aria-controls="preview-pane" aria-selected={pane === 'preview'} onClick={() => setPane('preview')}><TermDisplay>{"卡片预览"}</TermDisplay></button>
         </div>
         <section id="edit-pane" className="editor-column" aria-label="编辑内容">
-            <div className="editor-navigation"><strong>内容编辑</strong><label>跳转到 <select aria-label="定位编辑字段或章节" value={active} onChange={event => jump(event.target.value)}><option value="">选择字段或章节</option>{anchors.map((anchor, index) => <option key={index} value={index}>{anchor}</option>)}</select></label></div>
-            <div className="editor-content" ref={editorRef}>{editor}</div>
+            <div className="editor-navigation"><strong><TermDisplay>{"内容编辑"}</TermDisplay></strong><label><TermDisplay>{"跳转到 "}</TermDisplay><select aria-label="定位编辑字段或章节" value={active} onChange={event => jump(event.target.value)}><option value=""><TermDisplay>{"选择字段或章节"}</TermDisplay></option>{anchors.map((anchor, index) => <option key={index} value={index}>{<TermDisplay>{anchor}</TermDisplay>}</option>)}</select></label></div>
+            <div className="editor-content" ref={editorRef}>{<TermDisplay>{editor}</TermDisplay>}</div>
         </section>
         <div className="editor-divider" role="separator" aria-label="调整编辑区宽度" aria-orientation="vertical" aria-valuemin={40} aria-valuemax={70} aria-valuenow={share} tabIndex={0}
             onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home') { event.preventDefault(); setShare(value => event.key === 'Home' ? 60 : Math.max(40, Math.min(70, value + (event.key === 'ArrowRight' ? 2 : -2)))); } }}
             onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); }}
             onPointerMove={event => { if (!event.currentTarget.hasPointerCapture(event.pointerId)) return; const bounds = areaRef.current?.getBoundingClientRect(); if (bounds) setShare(Math.max(40, Math.min(70, Math.round((event.clientX - bounds.left) / bounds.width * 100)))); }}
             onPointerUp={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); }} />
-        <section id="preview-pane" className="preview-column" aria-label="卡片预览">{preview}</section>
+        <section id="preview-pane" className="preview-column" aria-label="卡片预览">{<TermDisplay>{preview}</TermDisplay>}</section>
     </div>;
 }

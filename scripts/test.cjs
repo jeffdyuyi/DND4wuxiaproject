@@ -316,7 +316,7 @@ test('standalone power archives match their rendered card and keep parent resour
     assert.equal(cardArchive('paths', parent, `power:${power.id}`).data.moves[0].id, power.id);
     assert.equal(cardArchive('paths', parent, 'summary').data.paths[0].id, parent.id);
     const markup = renderToStaticMarkup(React.createElement(CardContent, { module: 'paths', item: parent, format: `power:${power.id}` }));
-    assert(markup.includes('独立威能')); assert(!markup.includes('成道测试'));
+    assert(markup.includes('独立武学招式')); assert(!markup.includes('成道测试'));
     assert.equal(duplicateResource(parent).templateReference, undefined);
 });
 
@@ -368,20 +368,20 @@ test('term import retains local renames and card snapshots survive vocabulary ch
     const card = createResource('moves'); card.att = '力量'; card.def = 'AC'; card.defLabel = '旧格挡'; card.actionLabel = '旧出招';
     const restored = readArchive(makeArchive({ moves: [card] })).moves[0];
     const html = renderToStaticMarkup(React.createElement(PowerCard, { item: restored }));
-    assert(html.includes('旧格挡')); assert(html.includes('旧出招')); assert(!html.includes('金钟罩'));
+    assert(html.includes('格挡')); assert(html.includes('出招')); assert(!html.includes('旧格挡')); assert(!html.includes('旧出招')); assert.equal(restored.defLabel, '旧格挡');
     assert.throws(() => validateTerminology({ ...local, entries: [...local.entries, local.entries[0]] }), /重复/);
 });
 
 test('renamed and hidden suggestions retain legacy selection and authored labels', () => {
     const terms = defaultTerminology();
-    const defense = terms.entries.find(term => term.value === 'AC'); defense.label = '金钟罩';
+    const defense = terms.entries.find(term => term.value === 'AC'); defense.label = '金钟罩'; defense.replacement = '金钟罩';
     const render = props => renderToStaticMarkup(React.createElement(TerminologyContext.Provider,
         { value: { terminology: terms, update: () => {}, collect: () => {} } }, React.createElement(TermSelect, props)));
     const legacy = render({ label: '防御', category: 'defense', value: 'AC', onChange: () => {} });
-    assert(legacy.includes('格挡（卡片原有名称）')); assert(legacy.includes('金钟罩'));
+    assert(!legacy.includes('卡片原有名称')); assert(legacy.includes('金钟罩'));
     defense.hidden = true;
     const snapshot = render({ label: '防御', category: 'defense', value: 'AC', snapshot: '旧名称', onChange: () => {} });
-    assert(snapshot.includes('旧名称（卡片原有名称）')); assert(!snapshot.includes('金钟罩'));
+    assert(!snapshot.includes('旧名称')); assert(snapshot.includes('金钟罩'));
     const custom = render({ label: '防御', category: 'defense', value: '新防御', onChange: () => {} });
     assert(custom.includes('新防御（卡片原有值）'));
 });
@@ -479,7 +479,7 @@ test('editing keeps saved cards intact until overwrite, copy or named save-as is
     try {
         const App = load('App.tsx').default, { Editor } = load('components/Editor.tsx'), { Sidebar } = load('components/Sidebar.tsx'), { SaveAsDialog } = load('components/SaveAsDialog.tsx');
         const render = () => { cursor = 0; return App(); };
-        const button = (tree, text) => find(tree, element => element.type === 'button' && element.props.children === text);
+        const button = (tree, text) => find(tree, element => element.type === 'button' && (element.props.children === text || element.props.children?.props?.children === text));
         let tree = render(); find(tree, element => element.type === Sidebar).props.onSwitchModule('moves'); tree = render();
         find(tree, element => element.type === Editor).props.onChange({ ...original, name: '新风味' }); tree = render();
         assert.equal(db.moves[0].name, '原卡');
@@ -620,4 +620,70 @@ test('complex powers round-trip and appear in full and standalone cards', () => 
 test('empty progression omits placeholders and level zero survives migration', () => {
     const html = renderToStaticMarkup(React.createElement(ProgressionCard, { module: 'traditions', item: createResource('traditions') }));
     assert(!html.includes('未命名威能')); assert(!html.includes('未命名特性')); assert.equal(normalizeResource('moves', { name: '', level: 0 }).level, 0);
+});
+
+const { setReplacement, createTermTranslator } = load('utils/term-display.ts');
+test('global mappings update old card display, clear to originals, preserve data and portable settings', () => {
+    const initial = defaultTerminology();
+    const id = initial.entries.find(t => t.category === 'resource' && t.original === '威能').id;
+    const mapped = validateTerminology(setReplacement(initial, id, '招式'));
+    assert.equal(createTermTranslator(mapped)('威能 / 武学招式'), '招式 / 招式');
+    const cleared = validateTerminology(setReplacement(mapped, id, ''));
+    assert.equal(createTermTranslator(cleared)('威能 / 武学招式 / 招式'), '威能 / 威能 / 威能');
+    const item = createResource('moves'); item.name = '测试威能'; item.hit = '此威能造成火焰伤害。';
+    const snapshot = structuredClone(item);
+    const render = terms => renderToStaticMarkup(React.createElement(TerminologyContext.Provider, { value: { terminology: terms, update: () => {}, collect: () => {} } }, React.createElement(PowerCard, { item })));
+    assert(render(mapped).includes('测试招式')); assert(render(mapped).includes('此招式造成火焰伤害'));
+    assert(render(cleared).includes('测试威能')); assert.deepEqual(item, snapshot);
+    const archive = readLibraryArchive(makeArchive({ moves: [item] }, mapped));
+    assert.equal(createTermTranslator(archive.terminology)('威能'), '招式');
+});
+test('pairing existing wuxia words persists and old aliases return to the standard term', () => {
+    const initial = defaultTerminology();
+    const id = initial.entries.find(t => t.category === 'damage' && t.original === '火焰').id;
+    const mapped = validateTerminology(setReplacement(initial, id, '纯阳'));
+    assert.equal(createTermTranslator(mapped)('火焰 / 纯阳'), '纯阳 / 纯阳');
+    const cleared = validateTerminology(setReplacement(mapped, id, ''));
+    const loaded = validateTerminology(JSON.parse(JSON.stringify(cleared)));
+    assert.equal(createTermTranslator(loaded)('火焰 / 纯阳'), '火焰 / 火焰');
+    assert.equal(createTermTranslator(mapped, true)('纯阳伤害'), '火焰伤害');
+});
+test('legacy vocabulary upgrades without losing rename, hidden preferences or custom words', () => {
+    const legacy = { version: 1, autoCollect: false, entries: [{ id: 'defense:AC', category: 'defense', value: 'AC', label: '金钟罩', origin: 'wuxia', hidden: true }, { id: 'custom', category: 'damage', value: '星辉', label: '星辉', origin: 'custom' }] };
+    const upgraded = validateTerminology(legacy);
+    assert.equal(upgraded.entries.find(t => t.value === 'AC').original, '护甲等级');
+    assert.equal(upgraded.entries.find(t => t.value === 'AC').replacement, '金钟罩');
+    assert.equal(createTermTranslator(upgraded)('AC / 格挡'), '金钟罩 / 金钟罩');
+    assert(upgraded.entries.some(t => t.value === '星辉'));
+    assert.equal(upgraded.autoCollect, false);
+    assert(upgraded.entries.some(t => t.category === 'resource' && t.value === '威能'));
+    assert.throws(() => validateTerminology({ ...upgraded, entries: [{ ...upgraded.entries[0], replacement: 42 }] }), /字段/);
+});
+test('display replacement preserves markdown destinations, code and abbreviation boundaries', () => {
+    let terms = defaultTerminology();
+    terms = setReplacement(terms, terms.entries.find(t => t.category === 'resource' && t.original === '威能').id, '<招式>');
+    const html = renderToStaticMarkup(React.createElement(TerminologyContext.Provider, { value: { terminology: terms, update: () => {}, collect: () => {} } }, React.createElement(RichText, { text: '[威能](https://example.org/威能) `威能` **威能**' })));
+    assert(html.includes('href="https://example.org/威能"')); assert(html.includes('&lt;招式&gt;')); assert(html.includes('<code>威能</code>'));
+    assert.equal(createTermTranslator(terms)('CLASS AC'), 'CLASS 格挡');
+    assert.equal(createTermTranslator(terms)('MACRO'), 'MACRO');
+});
+
+test('clearing structured frequency and defense names uses 4E standards rather than internal codes', () => {
+    let terms = defaultTerminology();
+    for (const category of ['usage', 'defense', 'action']) {
+        for (const term of terms.entries.filter(t => t.category === category)) terms = setReplacement(terms, term.id, '');
+    }
+    const card = createResource('moves'); card.type = 'basic'; card.action = 'std'; card.att = '力量'; card.def = 'AC';
+    const markup = renderToStaticMarkup(React.createElement(TerminologyContext.Provider, { value: { terminology: terms, update: () => {}, collect: () => {} } }, React.createElement(PowerCard, { item: card })));
+    assert(markup.includes('随意')); assert(markup.includes('标准动作')); assert(markup.includes('护甲等级')); assert(!markup.includes('basic'));
+});
+
+test('search matches current display names and retains original text queries', () => {
+    let terms = defaultTerminology();
+    terms = setReplacement(terms, terms.entries.find(t => t.category === 'resource' && t.original === '威能').id, '招式');
+    const db = emptyDB(); const card = createResource('moves'); card.name = '测试威能'; card.def = 'AC'; db.moves = [card];
+    const display = createTermTranslator(terms);
+    assert.equal(searchResources(db, '招式', display)[0].item.id, card.id);
+    assert.equal(searchResources(db, '威能', display)[0].item.id, card.id);
+    assert.equal(searchResources(db, '格挡', display)[0].item.id, card.id);
 });

@@ -12,3 +12,12 @@
 .term-custom select { max-width: 100%; }
 .term-keywords { margin: 6px 0; }
 .term-keywords .keyword-group { max-height: 140px; overflow-y: auto; }
+.terminology-workbench { width: min(1100px, 94vw); max-width: 94vw; }
+.terminology-workbench .term-list { max-height: 52vh; }
+.terminology-workbench .term-entry { grid-template-columns: minmax(160px, 1fr) minmax(180px, 1fr) auto; align-items: center; padding: 14px; }
+.term-original small { display: block; margin-top: 6px; }
+.terminology-workbench .term-row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.terminology-workbench .term-entry button { grid-column: auto; grid-row: auto; }
+.term-definition { grid-column: 1 / -1; color: var(--ui-muted, #66747d); }
+.term-definition p { line-height: 1.7; }
+@media (max-width: 700px) { .terminology-workbench .term-entry { grid-template-columns: 1fr; } .terminology-workbench .term-row-actions { grid-column: 1; } }
