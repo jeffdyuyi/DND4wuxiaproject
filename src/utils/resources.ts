@@ -3,6 +3,16 @@ import type { DB, Item, ResourceMap } from '../types';
 import { newPower, createProgressionDefaults } from './progression';
 
 export const modules = Object.keys(Config) as ModuleType[];
+/** Compare JSON resource values while skipping unchanged subtrees and source snapshots. */
+export function sameResource(left: unknown, right: unknown): boolean {
+    if (Object.is(left, right)) return true;
+    if (!left || !right || typeof left !== 'object' || typeof right !== 'object' || Array.isArray(left) !== Array.isArray(right)) return false;
+    if (Array.isArray(left) && Array.isArray(right) && left.length !== right.length) return false;
+    if (!Array.isArray(left) && [left, right].some(value => ![Object.prototype, null].includes(Object.getPrototypeOf(value)))) return false;
+    const a = left as Record<string, unknown>, b = right as Record<string, unknown>;
+    const keys = Object.keys(a);
+    return keys.length === Object.keys(b).length && keys.every(key => Object.hasOwn(b, key) && sameResource(a[key], b[key]));
+}
 export function emptyDB(): DB {
     return { schools: [], moves: [], roots: [], destinies: [], origins: [], feats: [], items: [], traditions: [], paths: [] };
 }
@@ -12,7 +22,7 @@ export function createResource<K extends ModuleType>(module: K): ResourceMap[K] 
     let item: Item;
     switch (module) {
         case 'moves': item = { ...newPower(1, 'basic'), ...base }; break;
-        case 'items': item = { ...base, level: 1, type: '', price: '', slot: '', enhance: '', crit: '', prop: '', power: '' }; break;
+        case 'items': item = { ...base, level: 1, type: '', price: '', slot: '', enhance: '', crit: '', prop: '', power: '', versions: [], powers: [] }; break;
         case 'schools': item = { ...base, description: '', armorProf: '', weaponProf: '', defBonus: '', hpStart: '', hpPerLvl: '', surges: '', trainedSkills: '', features: [] }; break;
         case 'roots': item = { ...base, attributes: '', size: '', speed: '', vision: '' }; break;
         case 'origins': item = { ...base, languages: '', skillBonuses: '', traits: [] }; break;
@@ -30,15 +40,17 @@ export function withItems(db: DB, module: ModuleType, items: Item[]): DB {
 
 export function duplicateResource<T extends Item>(item: T): T {
     const copy = structuredClone(item);
+    const identities = new Map<string, string>();
     const refresh = (value: unknown): void => {
         if (Array.isArray(value)) value.forEach(refresh);
         else if (value && typeof value === 'object') {
             const record = value as Record<string, unknown>;
-            if (typeof record.id === 'string') record.id = crypto.randomUUID();
+            if (typeof record.id === 'string') { const old = record.id; record.id = crypto.randomUUID(); identities.set(old, String(record.id)); }
             Object.values(record).forEach(refresh);
         }
     };
     refresh(copy);
+    if (typeof copy.selectedVersionId === 'string') copy.selectedVersionId = identities.get(copy.selectedVersionId) ?? copy.selectedVersionId;
     return copy;
 }
 

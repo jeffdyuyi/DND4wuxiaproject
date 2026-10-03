@@ -1,13 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ColorLibraryContext } from '../hooks/ColorLibraryContext';
-import { loadColorLibrary, saveColorLibrary, upsertColor } from '../utils/color-library';
+import { loadColorLibrary, saveColorLibrary, upsertColor, COLOR_LIBRARY_UPDATED } from '../utils/color-library';
 import { browserStorage } from '../utils/storage';
 
 export function ColorLibraryProvider({ children }: { children: ReactNode }) {
-    const [loaded] = useState(() => loadColorLibrary(browserStorage));
+    const [loaded, setLoaded] = useState(() => loadColorLibrary(browserStorage));
     const [colors, setColors] = useState(loaded.colors);
     const [error, setError] = useState(loaded.error);
+    useEffect(() => {
+        const refresh = () => {
+            const next = loadColorLibrary(browserStorage);
+            setLoaded(next); setColors(next.colors); setError(next.error);
+        };
+        window.addEventListener(COLOR_LIBRARY_UPDATED, refresh);
+        return () => window.removeEventListener(COLOR_LIBRARY_UPDATED, refresh);
+    }, []);
     const commit = (next: typeof colors) => {
         if (loaded.error) return { ok: false, error: loaded.error };
         const result = saveColorLibrary(browserStorage, next);

@@ -38,6 +38,15 @@ export interface MoveItem extends BaseItem {
 export interface RuleSection { id: string; title: string; text: string; }
 export interface Trait { id: string; name: string; desc: string; }
 
+export interface EquipmentVersion {
+    id: string;
+    level: number;
+    price: string;
+    enhance: string;
+    crit: string;
+    [key: string]: unknown;
+}
+
 export interface EquipmentItem extends BaseItem {
     level: number;
     type: string;
@@ -47,6 +56,9 @@ export interface EquipmentItem extends BaseItem {
     crit: string;
     prop: string;
     power: string;
+    versions?: EquipmentVersion[];
+    selectedVersionId?: string;
+    powers?: MoveItem[];
 }
 
 export interface GeneralItem extends BaseItem {

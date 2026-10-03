@@ -55,3 +55,14 @@ export function applyColorToItems(items: Item[], ids: string[], color?: string, 
         return next;
     });
 }
+
+/** Add missing colors while preserving local palette names. */
+export function mergeColorLibrary(local: SavedColor[], incoming: SavedColor[]): SavedColor[] {
+    const result = [...local];
+    for (const color of validateColorLibrary({ schemaVersion: 1, colors: incoming })) {
+        if (result.some(entry => entry.color.toUpperCase() === color.color)) continue;
+        result.push({ ...color, id: result.some(entry => entry.id === color.id) ? crypto.randomUUID() : color.id });
+    }
+    return result;
+}
+export const COLOR_LIBRARY_UPDATED = 'wuxia:colors-updated';

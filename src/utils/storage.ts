@@ -13,9 +13,12 @@ export const browserStorage: StoragePort = {
     setItem: (key, value) => window.localStorage.setItem(key, value),
 };
 export interface LibraryLoad { db: DB; terminology: Terminology; recovery: Record<string, string>; issues: string[]; }
+export function emptyLibraryLoad(): LibraryLoad {
+    return { db: emptyDB(), terminology: defaultTerminology(), recovery: {}, issues: [] };
+}
 
 export function loadLibrary(storage: StoragePort): LibraryLoad {
-    const result: LibraryLoad = { db: emptyDB(), terminology: defaultTerminology(), recovery: {}, issues: [] };
+    const result = emptyLibraryLoad();
     let archive: string | null;
     try { archive = storage.getItem(STORAGE_KEY); }
     catch { result.issues.push('无法读取浏览器存储，请检查浏览器权限'); return result; }

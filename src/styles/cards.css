@@ -46,3 +46,7 @@
 .progression-heading { margin: 10px 0 0; padding: 5px 10px; background: #e8e4dc; border-top: 1px solid #c5bba8; font-size: 1em; }
 .progression-power { margin: 10px; border: 1px solid #444; }
 .progression-source { padding: 8px 12px; border-top: 1px dashed #c5bba8; color: #555; font-size: 0.85em; overflow-wrap: anywhere; }
+
+.equipment-versions { width: 100%; border-collapse: collapse; margin-block: .5rem; font-size: .9em; table-layout: fixed; }
+.equipment-versions th, .equipment-versions td { padding: .3rem; border-bottom: 1px solid #ddd; text-align: left; overflow-wrap: anywhere; }
+.equipment-versions th:first-child { width: 15%; }

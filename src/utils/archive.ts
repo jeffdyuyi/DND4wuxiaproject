@@ -2,18 +2,19 @@ import type { DB, Item, MoveItem } from '../types';
 import { Config, type ModuleType } from '../constants';
 import { createResource, duplicateResource, emptyDB, modules, withItems } from './resources';
 import { validateTerminology, type Terminology } from './terminology';
+import { validateColorLibrary, type SavedColor } from './color-library';
 import { isHeaderColor } from './card-colors';
 
 export const SCHEMA_VERSION = 1;
 export type ImportMode = 'skip' | 'overwrite' | 'copy';
-export interface Archive { schemaVersion: 1; exportedAt: string; data: Partial<DB>; terminology?: Terminology; }
+export interface Archive { schemaVersion: 1; exportedAt: string; data: Partial<DB>; terminology?: Terminology; colors?: SavedColor[]; }
 const recordOf = (value: unknown, path: string): Record<string, unknown> => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${path} 必须是对象`);
     return value as Record<string, unknown>;
 };
 const stringKeys: Record<ModuleType, string[]> = {
     moves: ['cls', 'action', 'range', 'keywords', 'trigger', 'target', 'att', 'def', 'hit', 'miss', 'effect', 'sustain', 'special', 'acquiredLevel'],
-    items: ['type', 'price', 'slot', 'enhance', 'crit', 'prop', 'power'],
+    items: ['type', 'price', 'slot', 'enhance', 'crit', 'prop', 'power', 'selectedVersionId'],
     schools: ['description', 'armorProf', 'weaponProf', 'defBonus', 'hpStart', 'hpPerLvl', 'surges', 'trainedSkills'],
     roots: ['attributes', 'size', 'speed', 'vision'], origins: ['languages', 'skillBonuses'],
     destinies: ['powerType', 'action', 'range', 'target', 'effect'],
@@ -68,13 +69,26 @@ export function normalizeResource(module: ModuleType, value: unknown, path: stri
     }
     if (module === 'schools') data.features = normalizeRows(data.features, false, `${path}.features`);
     if (module === 'origins') data.traits = normalizeRows(data.traits, false, `${path}.traits`);
-    if (module === 'traditions' || module === 'paths') {
-        data.features = normalizeRows(data.features, true, `${path}.features`);
+    if (module === 'items') {
+        if (data.versions !== undefined && !Array.isArray(data.versions)) throw new Error(`${path}.versions 必须是数组`);
+        const ids = new Set<string>();
+        data.versions = ((data.versions as unknown[] | undefined) ?? []).map((value, index) => {
+            const row = recordOf(value, `${path}.versions[${index + 1}]`);
+            textFields(row, ['id', 'price', 'enhance', 'crit'], path);
+            const level = Number(row.level);
+            if (!['string', 'number'].includes(typeof row.level) || !Number.isSafeInteger(level) || level < 0) throw new Error(`${path}.versions 的等级必须是非负整数`);
+            let id = typeof row.id === 'string' && row.id ? row.id : crypto.randomUUID();
+            if (ids.has(id)) id = crypto.randomUUID(); ids.add(id);
+            return { ...row, id, level, price: row.price ?? '', enhance: row.enhance ?? '', crit: row.crit ?? '' };
+        });
+    }
+    if (module === 'traditions' || module === 'paths') data.features = normalizeRows(data.features, true, `${path}.features`);
+    if (module === 'items' || module === 'traditions' || module === 'paths') {
         if (data.powers !== undefined && !Array.isArray(data.powers)) throw new Error(`${path}.powers 必须是数组`);
         const ids = new Set<string>();
         data.powers = ((data.powers as unknown[] | undefined) ?? []).map((power, index) => {
             let next = normalizeResource('moves', power, `${path}.powers[${index + 1}]`) as MoveItem;
-            if (next.acquiredLevel === undefined) next.acquiredLevel = String(next.level);
+            if (module !== 'items' && next.acquiredLevel === undefined) next.acquiredLevel = String(next.level);
             if (ids.has(next.id)) next = duplicateResource(next);
             ids.add(next.id); return next;
         });
@@ -96,15 +110,16 @@ export function readArchive(value: unknown): Partial<DB> {
     if (!recognized) throw new Error('文件不包含可识别的资源库');
     return result;
 }
-export function readLibraryArchive(value: unknown): { data: Partial<DB>; terminology?: Terminology } {
+export function readLibraryArchive(value: unknown): { data: Partial<DB>; terminology?: Terminology; colors?: SavedColor[] } {
     const root = recordOf(value, '备份');
+    const colors = root.colors === undefined ? undefined : validateColorLibrary({ schemaVersion: 1, colors: root.colors });
     const terminology = root.terminology === undefined ? undefined : validateTerminology(root.terminology);
     if (root.schemaVersion !== undefined && root.schemaVersion !== SCHEMA_VERSION) throw new Error('不支持此备份版本');
     const termsOnly = terminology && root.schemaVersion === SCHEMA_VERSION && root.data && typeof root.data === 'object' && !Array.isArray(root.data) && Object.keys(root.data).length === 0;
-    return { data: termsOnly ? {} : readArchive(value), ...(terminology ? { terminology } : {}) };
+    return { data: termsOnly ? {} : readArchive(value), ...(terminology ? { terminology } : {}), ...(colors ? { colors } : {}) };
 }
-export function makeArchive(data: Partial<DB>, terminology?: Terminology): Archive {
-    return { schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), data, ...(terminology ? { terminology } : {}) };
+export function makeArchive(data: Partial<DB>, terminology?: Terminology, colors?: SavedColor[]): Archive {
+    return { schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), data, ...(terminology ? { terminology } : {}), ...(colors ? { colors } : {}) };
 }
 /** Count import decisions without cloning resources or allocating draft IDs. */
 export function summarizeImport(db: DB, incoming: Partial<DB>, mode: ImportMode) {

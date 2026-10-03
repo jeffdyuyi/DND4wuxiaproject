@@ -413,6 +413,7 @@ test('navigation gives list and workbench distinct identities across populated a
     const libraryModule = load('hooks/useLibrary.ts');
     const originalLibrary = libraryModule.useLibrary;
     const originalState = React.useState;
+    const originalRef = React.useRef;
     const originalEffect = React.useEffect; React.useEffect = () => {};
     const db = emptyDB();
     db.schools = [createResource('schools')];
@@ -420,9 +421,10 @@ test('navigation gives list and workbench distinct identities across populated a
     let cursor = 0;
     React.useState = initial => {
         const index = cursor++;
-        if (!(index in states)) states[index] = initial;
+        if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial;
         return [states[index], value => { states[index] = value; }];
     };
+    React.useRef = initial => React.useState(() => ({ current: initial }))[0];
     libraryModule.useLibrary = () => ({ db, issues: [], recovery: {}, blocked: false, dirty: false, error: '' });
     try {
         const App = load('App.tsx').default;
@@ -463,18 +465,20 @@ test('navigation gives list and workbench distinct identities across populated a
     } finally {
         React.useState = originalState;
         React.useEffect = originalEffect;
+        React.useRef = originalRef;
         libraryModule.useLibrary = originalLibrary;
     }
 });
 
-test('editing keeps saved cards intact until overwrite, copy or named save-as is chosen', () => {
+test('editing keeps saved cards intact until overwrite, copy or named save-as is chosen', async () => {
     const libraryModule = load('hooks/useLibrary.ts');
-    const originalLibrary = libraryModule.useLibrary, originalState = React.useState, originalEffect = React.useEffect;
+    const originalLibrary = libraryModule.useLibrary, originalState = React.useState, originalEffect = React.useEffect, originalRef = React.useRef;
     let db = emptyDB(); const original = createResource('moves'); original.name = '原卡'; db.moves = [original];
     const states = []; let cursor = 0;
     React.useState = initial => { const index = cursor++; if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial; return [states[index], value => { states[index] = typeof value === 'function' ? value(states[index]) : value; }]; };
     React.useEffect = () => {};
-    libraryModule.useLibrary = () => ({ db, terminology: defaultTerminology(), blocked: false, dirty: false, issues: [], update: next => { db = next; } });
+    React.useRef = initial => React.useState(() => ({ current: initial }))[0];
+    libraryModule.useLibrary = () => ({ db, terminology: defaultTerminology(), blocked: false, dirty: false, issues: [], update: next => { db = next; return true; }, commit: async next => { db = next; return true; } });
     const find = (element, predicate) => { if (!React.isValidElement(element)) return; if (predicate(element)) return element; for (const child of React.Children.toArray(element.props.children).concat([element.props.editor, element.props.preview])) { const found = find(child, predicate); if (found) return found; } };
     try {
         const App = load('App.tsx').default, { Editor } = load('components/Editor.tsx'), { Sidebar } = load('components/Sidebar.tsx'), { SaveAsDialog } = load('components/SaveAsDialog.tsx');
@@ -488,15 +492,15 @@ test('editing keeps saved cards intact until overwrite, copy or named save-as is
         assert.equal(draftList.props.colorBlocked, true);
         draftList.props.onApplyColor([original.id], '#112233', false);
         assert.equal(db.moves[0].headerColor, undefined, 'batch application must not overwrite or save an active draft');
-        draftList.props.onDuplicate(original.id); tree = render();
+        await draftList.props.onDuplicate(original.id); tree = render();
         assert.equal(db.moves.length, 2); assert.equal(db.moves.find(item => item.id === original.id).name, '原卡');
         const copy = db.moves[0]; assert.notEqual(copy.id, original.id);
         find(tree, element => element.type === Editor).props.onChange({ ...copy, name: '另存草稿' }); tree = render();
         button(tree, '另存为…').props.onClick(); tree = render();
-        find(tree, element => element.type === SaveAsDialog).props.onSave('独立新卡'); tree = render();
+        await find(tree, element => element.type === SaveAsDialog).props.onSave('独立新卡'); tree = render();
         assert.equal(db.moves.length, 3); assert.equal(db.moves.find(item => item.id === copy.id).name, copy.name); assert.equal(db.moves[0].name, '独立新卡');
         const saved = db.moves[0]; find(tree, element => element.type === Editor).props.onChange({ ...saved, name: '覆盖后的名字' }); tree = render();
-        button(tree, '保存').props.onClick(); tree = render();
+        await button(tree, '保存').props.onClick(); tree = render();
         assert.equal(db.moves.length, 3); assert.equal(db.moves.find(item => item.id === saved.id).name, '覆盖后的名字');
         const savedList = find(tree, element => element.type === ListPanel);
         assert.equal(savedList.props.colorBlocked, false);
@@ -507,7 +511,7 @@ test('editing keeps saved cards intact until overwrite, copy or named save-as is
         assert.equal(find(tree, element => element.type === Editor).props.module, 'moves');
         button(tree, '放弃修改').props.onClick(); tree = render();
         assert.equal(find(tree, element => element.type === Editor).props.module, 'paths'); assert.equal(db.moves[0].name, '覆盖后的名字');
-    } finally { React.useState = originalState; React.useEffect = originalEffect; libraryModule.useLibrary = originalLibrary; }
+    } finally { React.useState = originalState; React.useRef = originalRef; React.useEffect = originalEffect; libraryModule.useLibrary = originalLibrary; }
 });
 
 test('denied browser storage getter reports failure without crashing', () => {
@@ -926,4 +930,283 @@ test('conversion review links target explicit fields and safely fall back to the
     assert.equal(reviewTarget('未识别明确的职业特性章节，完整规则保留在门派描述，请核对。'), 'description');
     assert.equal(reviewTarget('附属招式：动作未能识别'), 'original');
     assert.equal(reviewTarget('未解析的原版引用：不存在'), 'original');
+});
+
+
+test('actual JSON bundle exports reimport with terminology and compressed payloads', async () => {
+    const files = load('utils/card-files.ts');
+    const oldDownload = files.downloadBlob;
+    let blob;
+    files.downloadBlob = value => { blob = value; };
+    try {
+        const item = createResource('moves'); item.name = '术语往返';
+        const terms = defaultTerminology();
+        await load('components/card-export.tsx').exportCardBundle([{ module: 'moves', item }], false, () => {}, terms);
+        const result = files.readCardBytes(new Uint8Array(await blob.arrayBuffer()), 'cards.zip');
+        assert.deepEqual(result.data.moves, [item]); assert.deepEqual(result.terminology, terms);
+        assert(blob.size < new TextEncoder().encode(JSON.stringify(makeArchive({ moves: [item] }, terms))).length);
+    } finally { files.downloadBlob = oldDownload; }
+});
+
+test('PNG and JSON bundles preserve terms, reject conflicting mappings and tolerate different term IDs', () => {
+    const { packFiles, readCardBytes } = load('utils/card-files.ts');
+    const { embedCardPNG } = load('utils/card-png.ts');
+    const item = createResource('moves'), terms = defaultTerminology();
+    const archive = makeArchive({ moves: [item] }, terms);
+    const encode = value => new TextEncoder().encode(JSON.stringify(value));
+    const same = structuredClone(archive); same.terminology.entries[0].id = 'other-term-id';
+    const restored = readCardBytes(packFiles({ 'card.json': encode(same), 'card.png': embedCardPNG(testPNG(), archive) }), 'cards.zip');
+    assert.equal(restored.data.moves.length, 1); assert.deepEqual(restored.terminology.entries.length, terms.entries.length);
+    const conflict = structuredClone(archive); conflict.terminology.entries[0].replacement = '不同置换';
+    assert.throws(() => readCardBytes(packFiles({ 'a.json': encode(archive), 'b.json': encode(conflict) }), 'cards.zip'), /置换不同/);
+});
+
+test('workspace archives preserve and validate palettes; merging retains local colors and names', () => {
+    const { mergeColorLibrary } = load('utils/color-library.ts');
+    const local = [{ id: 'one', name: '本地竹青', color: '#123ABC' }];
+    const incoming = [{ id: 'other', name: '外部竹青', color: '#123ABC' }, { id: 'one', name: '绛红', color: '#ABC123' }];
+    const db = emptyDB(), terms = defaultTerminology();
+    const archive = makeArchive(db, terms, local);
+    assert.deepEqual(readLibraryArchive(JSON.parse(JSON.stringify(archive))).colors, local);
+    assert.equal(readLibraryArchive(makeArchive(db, terms)).colors, undefined);
+    assert.throws(() => readLibraryArchive({ ...archive, colors: [{ ...local[0], color: 'red' }] }), /配色/);
+    const merged = mergeColorLibrary(local, incoming);
+    assert.equal(merged.length, 2); assert.equal(merged[0].name, '本地竹青'); assert.notEqual(merged[1].id, local[0].id);
+    const { readCardBytes, packFiles } = load('utils/card-files.ts');
+    assert.throws(() => readCardBytes(packFiles({ 'backup.json': new TextEncoder().encode(JSON.stringify(archive)) }), 'backup.zip'), /工作区备份/);
+});
+
+
+test('author migration exceeds localStorage capacity, retains original bytes and prefers the migrated archive', async () => {
+    const previous = global.indexedDB; global.indexedDB = new (require('fake-indexeddb').IDBFactory)();
+    const { initializeAuthor, writeAuthorRecord, readAuthorRecord, decodeAuthorRecord } = load('utils/author-store.ts');
+    const db = emptyDB(), item = createResource('moves'); item.sourceText = 'a'.repeat(6 * 1024 * 1024); db.moves = [item];
+    const terms = defaultTerminology(), raw = JSON.stringify(makeArchive(db, terms));
+    const port = storage({ [STORAGE_KEY]: raw });
+    try {
+        const first = await initializeAuthor(port);
+        assert.equal(first.revision, 1); assert.deepEqual(first.loaded.db, db); assert.deepEqual(first.loaded.terminology, terms);
+        assert.equal(port.getItem(STORAGE_KEY), raw);
+        const changed = structuredClone(db); changed.moves[0].name = '大容量新版';
+        await writeAuthorRecord(changed, terms, first.revision);
+        port.setItem(STORAGE_KEY, '{old broken data');
+        const restarted = await initializeAuthor(port);
+        assert.equal(restarted.loaded.db.moves[0].name, '大容量新版'); assert.equal(restarted.loaded.issues.length, 0);
+        assert.equal(port.getItem(STORAGE_KEY), '{old broken data');
+        assert.equal(decodeAuthorRecord(await readAuthorRecord()).loaded.db.moves[0].sourceText.length, 6 * 1024 * 1024);
+    } finally { global.indexedDB = previous; }
+});
+
+test('author saves reject stale tabs and clear only the committed draft atomically', async () => {
+    const fake = require('fake-indexeddb'), previous = global.indexedDB; global.indexedDB = new fake.IDBFactory();
+    const api = load('utils/author-store.ts'), db = emptyDB(), terms = defaultTerminology();
+    const item = createResource('moves'); db.moves = [item];
+    const originalPut = fake.IDBObjectStore.prototype.put;
+    try {
+        await api.writeAuthorRecord(db, terms, 0);
+        await api.writeEditorDraft('tab-a', { module: 'moves', item: { ...item, name: '草稿甲' } });
+        await api.writeEditorDraft('tab-b', { module: 'moves', item: { ...item, name: '草稿乙' } });
+        fake.IDBObjectStore.prototype.put = function(...args) { if (this.name === 'library') throw new Error('模拟写入失败'); return originalPut.apply(this, args); };
+        await assert.rejects(api.writeAuthorRecord(db, terms, 1, ['tab-a']), /模拟写入失败/);
+        assert.equal((await api.readAuthorRecord()).revision, 1); assert.equal((await api.readEditorDrafts()).drafts.length, 2);
+        fake.IDBObjectStore.prototype.put = originalPut;
+        await api.writeAuthorRecord({ ...db, moves: [{ ...item, name: '正式保存' }] }, terms, 1, ['tab-a']);
+        await assert.rejects(api.writeAuthorRecord(db, terms, 1, ['tab-b']), /其他标签页/);
+        assert.equal(api.decodeAuthorRecord(await api.readAuthorRecord()).loaded.db.moves[0].name, '正式保存');
+        assert.deepEqual((await api.readEditorDrafts()).drafts.map(record => record.id), ['tab-b']);
+    } finally { fake.IDBObjectStore.prototype.put = originalPut; global.indexedDB = previous; }
+});
+
+test('corrupt legacy and IndexedDB author records preserve recovery bytes without automatic replacement', async () => {
+    const previous = global.indexedDB; global.indexedDB = new (require('fake-indexeddb').IDBFactory)();
+    const api = load('utils/author-store.ts'), raw = '{original broken bytes';
+    try {
+        const legacy = await api.initializeAuthor(storage({ [STORAGE_KEY]: raw }));
+        assert(legacy.loaded.issues.length); assert.equal(legacy.loaded.recovery[STORAGE_KEY], raw);
+        assert.equal(await api.readAuthorRecord(), undefined);
+        const malformed = api.decodeAuthorRecord({ revision: 7, text: raw, updatedAt: 1 });
+        assert.equal(malformed.revision, 7); assert.equal(malformed.loaded.recovery[STORAGE_KEY], raw);
+        assert(malformed.loaded.issues.length);
+        const future = JSON.stringify({ schemaVersion: 99, data: emptyDB() });
+        const rejected = api.decodeAuthorRecord({ revision: 8, text: future, updatedAt: 1 });
+        assert(rejected.loaded.issues.length); assert.equal(rejected.loaded.recovery[STORAGE_KEY], future);
+    } finally { global.indexedDB = previous; }
+});
+
+function hookHarness() {
+    const original = { state: React.useState, ref: React.useRef, effect: React.useEffect };
+    const states = [], effects = []; let cursor = 0;
+    React.useState = initial => { const index = cursor++; if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial; return [states[index], next => { states[index] = typeof next === 'function' ? next(states[index]) : next; }]; };
+    React.useRef = initial => React.useState(() => ({ current: initial }))[0];
+    React.useEffect = effect => { effects.push(effect); };
+    return { render: fn => { cursor = 0; effects.length = 0; return fn(); }, effects, restore: () => { React.useState = original.state; React.useRef = original.ref; React.useEffect = original.effect; } };
+}
+
+test('draft journals keep the newest edit through reload, never resurrect discarded edits and preserve other sessions', async () => {
+    const previous = global.indexedDB; global.indexedDB = new (require('fake-indexeddb').IDBFactory)();
+    const harness = hookHarness(), { useEditorDraft } = load('hooks/useEditorDraft.ts'), api = load('utils/author-store.ts');
+    try {
+        const journal = harness.render(() => useEditorDraft(true)), item = createResource('moves');
+        await api.writeEditorDraft('another-tab', { module: 'moves', item: { ...item, name: '另一页草稿' } });
+        journal.setDraft({ module: 'moves', item: { ...item, name: '第一笔' } });
+        journal.setDraft({ module: 'moves', item: { ...item, name: '最新编辑' } });
+        await journal.flush();
+        const restored = await api.readEditorDrafts();
+        assert(restored.drafts.some(record => record.item.name === '最新编辑')); assert(!restored.drafts.some(record => record.item.name === '第一笔'));
+        journal.setDraft({ module: 'moves', item: { ...item, name: '即将丢弃' } }); journal.setDraft(null);
+        await journal.flush();
+        assert.deepEqual((await api.readEditorDrafts()).drafts.map(record => record.id), ['another-tab']);
+    } finally { harness.restore(); global.indexedDB = previous; }
+});
+
+test('failed card save retains the editable draft and blocks requested navigation', async () => {
+    const harness = hookHarness(), libraryModule = load('hooks/useLibrary.ts'), original = libraryModule.useLibrary;
+    const db = emptyDB(), item = createResource('moves'); db.moves = [item];
+    libraryModule.useLibrary = () => ({ db, ready: true, indexed: false, terminology: defaultTerminology(), blocked: false, dirty: false, issues: [], update: () => false, commit: async () => false });
+    const find = (node, predicate) => { if (!React.isValidElement(node)) return; if (predicate(node)) return node; for (const child of React.Children.toArray(node.props.children).concat([node.props.editor, node.props.preview])) { const match = find(child, predicate); if (match) return match; } };
+    try {
+        const App = load('App.tsx').default, { Sidebar } = load('components/Sidebar.tsx'), { Editor } = load('components/Editor.tsx');
+        const render = () => harness.render(App);
+        let tree = render(); find(tree, node => node.type === Sidebar).props.onSwitchModule('moves'); tree = render();
+        find(tree, node => node.type === Editor).props.onChange({ ...item, name: '必须保留的草稿' }); tree = render();
+        find(tree, node => node.type === Sidebar).props.onSwitchModule('paths'); tree = render();
+        await find(tree, node => node.type === 'button' && node.props.children?.props?.children === '覆盖保存').props.onClick(); tree = render();
+        assert.equal(find(tree, node => node.type === Editor).props.module, 'moves');
+        assert.equal(find(tree, node => node.type === Editor).props.item.name, '必须保留的草稿');
+        assert.equal(db.moves[0].name, item.name);
+    } finally { harness.restore(); libraryModule.useLibrary = original; }
+});
+
+
+test('concurrent first migrations converge on one stored revision without rewriting legacy keys', async () => {
+    const previous = global.indexedDB; global.indexedDB = new (require('fake-indexeddb').IDBFactory)();
+    const { initializeAuthor, readAuthorRecord } = load('utils/author-store.ts');
+    const db = emptyDB(); db.moves = [createResource('moves')];
+    const raw = JSON.stringify(makeArchive(db, defaultTerminology())), port = storage({ [STORAGE_KEY]: raw });
+    try {
+        const results = await Promise.all([initializeAuthor(port), initializeAuthor(port)]);
+        assert.equal(results[0].revision, 1); assert.equal(results[1].revision, 1);
+        assert.deepEqual(results[0].loaded.db, results[1].loaded.db);
+        assert.equal((await readAuthorRecord()).revision, 1); assert.equal(port.getItem(STORAGE_KEY), raw);
+    } finally { global.indexedDB = previous; }
+});
+
+test('resource comparison detects nested edits and reversions while avoiding whole-card serialization', () => {
+    const { sameResource } = load('utils/resources.ts');
+    const item = createResource('traditions'); item.sourceText = 'large unchanged snapshot';
+    const edited = structuredClone(item); edited.features.push({ id: 'feature', name: '变化', desc: '正文', level: '11' });
+    assert(!sameResource(item, edited)); assert(sameResource(item, structuredClone(item)));
+    const stringify = JSON.stringify;
+    JSON.stringify = () => { throw new Error('must not serialize on each edit'); };
+    try { assert(sameResource(item, { ...item })); assert(!sameResource(item, { ...item, name: '改名' })); }
+    finally { JSON.stringify = stringify; }
+});
+
+
+test('async author hook queues edits and term collection, reports completion and retains the original on failed commit', async () => {
+    const fake = require('fake-indexeddb'), previous = { indexedDB: global.indexedDB, window: global.window };
+    global.indexedDB = new fake.IDBFactory(); global.window = { localStorage: storage(), addEventListener: () => {}, removeEventListener: () => {} };
+    const harness = hookHarness(), { useLibrary } = load('hooks/useLibrary.ts'), api = load('utils/author-store.ts');
+    const originalPut = fake.IDBObjectStore.prototype.put;
+    try {
+        let library = harness.render(useLibrary); assert.equal(library.ready, false);
+        harness.effects[0]();
+        const deadline = Date.now() + 3000;
+        while (!(library = harness.render(useLibrary)).ready) { assert(Date.now() < deadline, 'initialization must finish'); await new Promise(resolve => setImmediate(resolve)); }
+        const next = emptyDB(); next.moves = [{ ...createResource('moves'), name: '连续编辑后的卡片' }];
+        const writing = library.update(next); library.collect('damage', '测试异步劲气', true);
+        assert(await writing); assert(await library.retry());
+        library = harness.render(useLibrary);
+        assert.equal(library.dirty, false); assert.equal(library.error, ''); assert(library.savedAt);
+        const persisted = api.decodeAuthorRecord(await api.readAuthorRecord()).loaded;
+        assert.equal(persisted.db.moves[0].name, next.moves[0].name); assert(persisted.terminology.entries.some(term => term.value === '测试异步劲气'));
+        fake.IDBObjectStore.prototype.put = function(...args) { if (this.name === 'library') throw new Error('测试写入失败'); return originalPut.apply(this, args); };
+        const changed = { ...next, moves: [{ ...next.moves[0], name: '未能保存的修改' }] };
+        assert.equal(await library.commit(changed), false);
+        library = harness.render(useLibrary); assert.equal(library.db.moves[0].name, next.moves[0].name); assert(library.error.includes('测试写入失败'));
+        fake.IDBObjectStore.prototype.put = originalPut;
+        assert(await library.commit(changed));
+        assert.equal(api.decodeAuthorRecord(await api.readAuthorRecord()).loaded.db.moves[0].name, changed.moves[0].name);
+    } finally { fake.IDBObjectStore.prototype.put = originalPut; harness.restore(); global.indexedDB = previous.indexedDB; global.window = previous.window; }
+});
+
+
+test('IndexedDB quota failures retain both committed resources and recovery drafts with a Chinese error', async () => {
+    const fake = require('fake-indexeddb'), previous = global.indexedDB, originalPut = fake.IDBObjectStore.prototype.put;
+    global.indexedDB = new fake.IDBFactory();
+    const api = load('utils/author-store.ts'), db = emptyDB(), terms = defaultTerminology(), item = createResource('moves');
+    try {
+        await api.writeAuthorRecord(db, terms, 0); await api.writeEditorDraft('quota-draft', { module: 'moves', item });
+        const before = await api.readAuthorRecord();
+        fake.IDBObjectStore.prototype.put = function(...args) { if (this.name === 'library') throw new DOMException('quota', 'QuotaExceededError'); return originalPut.apply(this, args); };
+        await assert.rejects(api.writeAuthorRecord({ ...db, moves: [item] }, terms, 1, ['quota-draft']), /空间不足/);
+        assert.deepEqual(await api.readAuthorRecord(), before); assert.equal((await api.readEditorDrafts()).drafts[0].id, 'quota-draft');
+    } finally { fake.IDBObjectStore.prototype.put = originalPut; global.indexedDB = previous; }
+});
+
+
+test('equipment templates read explicit versions and split property and inline powers without inventing macro values', () => {
+    const { adaptTemplate, plainText } = load('utils/templates.ts');
+    const entry = { id: 'test-equipment', name: '测试宝剑', category: 'equipment', source: '测试资料', itemLevel: '2 7', itemCategory: '武器', itemSuitable: '重刃', details: '<table class="lv"><tr><td>等级2</td><td>+1</td><td>520gp</td><td>等级7</td><td>+2</td><td>2,600gp</td></tr></table><div class="text"><b>增强：</b>攻击骰和伤害骰</div><div class="text"><b>重击：</b>每增强点附加伤害</div><div class="bold bg-item">特性</div><div class="text">特殊体征；7级时效果变化，须核对。</div><div class="bold bg-item">威能✦每日（次要动作）</div><div class="text">触发：测试触发<br>效果：完整特殊规则</div>' };
+    const draft = adaptTemplate(entry, 'items', 'test')[0], item = draft.item;
+    assert.equal(item.level, 2); assert.equal(item.price, '520gp'); assert.equal(item.enhance, '+1；攻击骰和伤害骰');
+    assert.deepEqual(item.versions.map(version => [version.level, version.price]), [[2, '520gp'], [7, '2,600gp']]);
+    assert.equal(item.crit, '每增强点附加伤害'); assert(item.prop.includes('7级时效果变化')); assert(!item.prop.includes('测试触发'));
+    assert.equal(item.powers.length, 1); assert.equal(item.powers[0].type, 'ultimate'); assert.equal(item.powers[0].action, 'min');
+    assert(item.powers[0].rules.some(rule => rule.text.includes('完整特殊规则')));
+    assert.equal(JSON.parse(item.templateReference.originalJSON).details, entry.details);
+    const macro = adaptTemplate({ ...entry, details: '<<item-level-2ns>><div class="text"><b>增强：</b>攻击骰</div><div class="bold bg-item">特性</div><div class="text">不能省略的效果</div>' }, 'items', 'test')[0];
+    assert.deepEqual(macro.item.versions.map(version => version.price), ['520gp', '']); assert.equal(macro.item.enhance, '攻击骰');
+    assert(macro.warnings.some(warning => warning.includes('未展开等级宏'))); assert(!macro.item.prop.includes('item-level'));
+    assert.equal(plainText('<<unknown-macro>>'), '【原版宏：unknown-macro】');
+});
+
+test('equipment version selection, nested IDs, legacy text and editable exports survive round-trips', () => {
+    const { applyEquipmentVersion } = load('utils/equipment.ts'), { cardArchive } = load('utils/card-image.ts');
+    const { embedCardPNG, readCardPNG } = load('utils/card-png.ts');
+    const item = createResource('items'), power = createResource('moves'); power.name = '装备附属神通'; power.effect = '规则全文';
+    item.versions = [{ id: 'v1', level: 2, price: '520gp', enhance: '+1', crit: '第一版', custom: '扩展信息' }, { id: 'v2', level: 7, price: '2600gp', enhance: '+2', crit: '第二版' }]; item.powers = [power]; item.power = '旧卡神通全文';
+    const selected = applyEquipmentVersion(item, item.versions[1]); assert.equal(selected.price, '2600gp'); assert.equal(selected.crit, '第二版'); assert.equal(item.level, 1);
+    const copied = duplicateResource(selected); assert.notEqual(copied.versions[1].id, selected.versions[1].id); assert.equal(copied.selectedVersionId, copied.versions[1].id); assert.notEqual(copied.powers[0].id, power.id);
+    const restored = readArchive(readCardPNG(embedCardPNG(testPNG(), makeArchive({ items: [selected] })))).items[0];
+    assert.deepEqual(restored, selected); assert.equal(restored.power, '旧卡神通全文');
+    assert.equal(cardArchive('items', selected, `power:${power.id}`).data.moves[0].id, power.id);
+    assert.equal(cardArchive('items', selected, 'summary').data.items[0].versions.length, 2);
+    assert.equal(cardArchive('items', selected, 'power:removed').data.items[0].id, selected.id);
+    for (const versions of [[{ id: 'bad', level: -1 }], [{ id: 'bad', level: 2, price: 99 }], 'not-an-array']) assert.throws(() => readArchive({ items: [{ ...item, versions }] }), /等级|文本|数组/);
+    assert.throws(() => readArchive({ items: [{ ...item, powers: [{ name: '坏威能', type: 'invalid' }] }] }), /频率/);
+    const old = normalizeResource('items', { name: '旧装备', level: '3', power: '原有全文', price: '作者价格' });
+    assert.equal(old.power, '原有全文'); assert.equal(old.price, '作者价格'); assert.deepEqual(old.versions, []); assert.deepEqual(old.powers, []);
+    assert(searchResources({ ...emptyDB(), items: [selected] }, '装备附属神通').length);
+});
+
+test('equipment full, summary and standalone cards share existing power rendering and editors expose version controls', () => {
+    const { EquipmentEditor } = load('components/Equipment.tsx');
+    const item = createResource('items'), power = createResource('moves'); power.name = '单独神通'; power.effect = '神通正文'; item.powers = [power]; item.prop = '装备特性'; item.power = '兼容旧正文';
+    item.versions = [{ id: 'one', level: 4, price: '840gp', enhance: '+1', crit: '暴击规则' }];
+    const full = renderToStaticMarkup(React.createElement(CardContent, { module: 'items', item }));
+    const summary = renderToStaticMarkup(React.createElement(CardContent, { module: 'items', item, format: 'summary' }));
+    const single = renderToStaticMarkup(React.createElement(CardContent, { module: 'items', item, format: `power:${power.id}` }));
+    assert(full.includes('神通正文') && full.includes('840gp') && full.includes('兼容旧正文'));
+    assert(summary.includes('单独神通') && !summary.includes('神通正文')); assert(single.includes('神通正文') && !single.includes('装备特性'));
+    const editor = renderToStaticMarkup(React.createElement(EquipmentEditor, { item, onChange: () => {} }));
+    assert(editor.includes('应用此版本')); assert(editor.includes('添加威能')); assert(editor.includes('版本价值'));
+});
+
+
+test('equipment macros distinguish normal, consumable and single versions and preserve unknown or conflicting data', () => {
+    const { adaptTemplate } = load('utils/templates.ts');
+    const convert = (macro, fields = {}) => adaptTemplate({ id: 'macro-test', name: '宏测试', category: 'equipment', details: `<<${macro}>><div class="text"><b>增强：</b>攻击骰</div>`, ...fields }, 'items', 'test')[0];
+    const normal = convert('item-level-1');
+    assert.deepEqual(normal.item.versions.map(v => [v.level, v.price, v.enhance]), [[1, '360gp', '+1；攻击骰'], [6, '1,800gp', '+2；攻击骰'], [11, '9,000gp', '+3；攻击骰'], [16, '45,000gp', '+4；攻击骰'], [21, '225,000gp', '+5；攻击骰'], [26, '1,125,000gp', '+6；攻击骰']]);
+    assert(!normal.warnings.some(w => w.startsWith('装备增强')));
+    const consumable = convert('item-level-1cns');
+    assert.equal(consumable.item.versions.length, 1); assert.equal(consumable.item.price, '20gp'); assert.equal(consumable.item.enhance, '攻击骰');
+    const unknown = convert('item-level-99custom', { itemLevel: '4' });
+    assert.equal(unknown.item.price, ''); assert(unknown.item.prop.includes('【原版宏：item-level-99custom】')); assert(unknown.warnings.some(w => w.includes('未识别')));
+    const conflict = convert('item-level-1', { itemLevel: '1', details: '<<item-level-1>><table><tr><td>等级1</td><td>+9</td><td>777gp</td></tr></table>' });
+    assert.equal(conflict.item.versions.length, 1); assert.equal(conflict.item.price, '777gp'); assert.equal(conflict.item.enhance, '+9'); assert(conflict.warnings.some(w => w.includes('冲突'))); assert(conflict.warnings.some(w => w.includes('不一致')));
+    const archive = readArchive(makeArchive({ items: [normal.item] }));
+    assert.deepEqual(archive.items[0].versions, normal.item.versions);
+    assert(JSON.parse(normal.item.templateReference.originalJSON).details.includes('<<item-level-1>>'));
 });

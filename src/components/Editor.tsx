@@ -1,9 +1,10 @@
+import { EquipmentEditor } from './Equipment';
 import { TermDisplay } from './TermDisplay';
 import { HeaderColorEditor } from './HeaderColorEditor';
 
 import React from 'react';
 import type { ModuleType } from '../constants';
-import { TermInput, TermSelect, RuleText } from './TermControls';
+import { TermSelect, RuleText } from './TermControls';
 import { PowerEditor } from './PowerEditor';
 import { TemplateReference } from './TemplateReference';
 import type { Item, MoveItem, EquipmentItem, GeneralItem, SchoolItem, RootItem, OriginItem, DestinyItem } from '../types';
@@ -31,29 +32,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
     if (module === 'moves') {
         return <div className="editor-panel"><TemplateReference item={item} /><PowerEditor item={item as MoveItem} onChange={onChange} /></div>;
     } else if (module === 'items') {
-        const d = item as EquipmentItem;
-        return (
-            <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
-                <form onSubmit={e => e.preventDefault()}>
-                    <h3 className="editor-section-title">基础信息</h3>
-                    <div className="row">
-                        <div className="col"><Input label="宝物名称" value={d.name} onChange={(v) => update('name', v)} /></div>
-                        <div className="col"><Input label="等级" value={d.level} onChange={(v) => /^\d*$/.test(v) && update('level', Number(v))} /></div>
-                    </div>
-                    <div className="row">
-                        <div className="col"><TermInput label="部位" value={d.slot} categories={['slot']} onChange={(v) => update('slot', v)} /></div>
-                        <div className="col"><Input label="价值" value={d.price} onChange={(v) => update('price', v)} /></div>
-                    </div>
-                    <TermInput label="类型 (如：重刃)" value={d.type} categories={['weaponGroup', 'weapon', 'implement', 'armor']} collectAs="weaponGroup" onChange={(v) => update('type', v)} />
-                    <Text label="外观" value={d.flavor} onChange={(v) => update('flavor', v)} />
-                    <Input label="淬炼等级" value={d.enhance} onChange={(v) => update('enhance', v)} />
-                    <Input label="暴击效果" value={d.crit} onChange={(v) => update('crit', v)} />
-                    <h3 className="editor-section-title">规则与效果</h3>
-                    <RuleText label="特性 (Property)" value={d.prop} onChange={(v) => update('prop', v)} />
-                    <RuleText label="神通 (Power)" value={d.power} onChange={(v) => update('power', v)} />
-                </form>
-            </div>
-        );
+        return <EquipmentEditor item={item as EquipmentItem} onChange={onChange} />;
     } else if (module === 'schools') {
         const d = item as SchoolItem;
         return (

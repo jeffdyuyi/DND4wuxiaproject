@@ -1,3 +1,5 @@
+import { field, plainText, originalBody } from './template-text';
+import { adaptEquipment } from './equipment-template';
 import type { ModuleType } from '../constants';
 import type { Item, MoveItem, ProgressionItem, SchoolItem, RootItem, OriginItem, DestinyItem, EquipmentItem, GeneralItem } from '../types';
 import { createResource } from './resources';
@@ -16,23 +18,7 @@ export interface OriginalEntry {
 export interface TemplateSummary { id: string; name: string; nameEn: string; category: TemplateCategory; source: string; level: string; keywords: string; file: string; searchText?: string; }
 export interface TemplateIndex { version: 1; dataset: string; sourceVersion: string; entries: TemplateSummary[]; }
 export interface TemplateDraft { module: ModuleType; item: Item; warnings: string[]; }
-const textOf = (value: unknown) => typeof value === 'string' ? value : '';
-export function field(entry: OriginalEntry, ...keys: string[]): string {
-    for (const key of keys) { const value = textOf(entry[key]) || entry.fields?.[key]; if (value) return value; }
-    return '';
-}
-export function plainText(text: string, fields: Record<string, string> = {}): string {
-    return text.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/\{\{!!([^}]+)\}\}/g, (match, key) => fields[key] ?? match)
-        .replace(/\[\[([^\]]+)\]\]/g, (_, body: string) => body.split('|')[0])
-        .replace(/<br\s*\/?\s*>|<\/p>|<\/div>|<\/tr>/gi, '\n').replace(/<\/t[dh]>/gi, ' | ')
-        .replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-        .replace(/&#(x[\da-f]+|\d+);/gi, (_, value: string) => { const code = value[0].toLowerCase() === 'x' ? parseInt(value.slice(1), 16) : Number(value); return code <= 0x10ffff ? String.fromCodePoint(code) : '�'; })
-        .replace(/^@@[^\n]*$/gm, '').replace(/"""|''/g, '').replace(/\|\s*$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
-}
-export function originalBody(entry: OriginalEntry): string {
-    return [field(entry, 'flavorText'), field(entry, 'details'), field(entry, 'sourceText'), field(entry, 'benefit')].filter(Boolean).map(text => plainText(text, { ...entry.fields, title: entry.name })).join('\n\n');
-}
+export { field, plainText, originalBody } from './template-text';
 function rows(entry: OriginalEntry): { title: string; text: string }[] {
     const details = field(entry, 'details');
     return [...details.matchAll(/<tr\b[^>]*>\s*<th\b[^>]*>([\s\S]*?)<\/th>\s*<td\b[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi)].map(match => ({
@@ -165,9 +151,7 @@ export function adaptTemplate(entry: OriginalEntry, module: ModuleType, sourceVe
         });
         const destiny = item as DestinyItem; destiny.powerType = '待核对'; destiny.action = ''; destiny.effect = body; warnings.push('没有解析到种族威能，暂保留种族全文供选择能力。');
     } else if (module === 'items') {
-        const equipment = item as EquipmentItem; const levels = field(entry, 'itemLevel', 'item-level', 'level').match(/\d+/g) ?? [];
-        equipment.level = Number(levels[0] ?? 0); equipment.type = field(entry, 'itemSuitable', 'item-suitable', 'itemCategory', 'item-category'); equipment.slot = field(entry, 'itemCategory', 'item-category');
-        equipment.prop = plainText(field(entry, 'details'), entry.fields) || body; warnings.push('装备多等级、价格、增强、暴击与威能组合保留全文，需按目标版本拆分；草稿等级取最低原版等级。');
+        warnings.push(...adaptEquipment(entry, item as EquipmentItem, powers, power => adaptPower(power, sourceVersion)));
     }
     Object.assign(item, { templateWarnings: warnings });
     return [{ module, item, warnings }];

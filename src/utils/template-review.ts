@@ -1,4 +1,6 @@
 export function reviewTarget(warning: string) {
+    if (/^装备(?:版本|增强|等级)/.test(warning)) return 'versions';
+    if (/^装备附属/.test(warning)) return 'powers';
     if (/^使用频率/.test(warning)) return 'frequency';
     if (/^动作/.test(warning)) return 'action';
     if (/^原版未给出单一数字等级/.test(warning)) return 'level';

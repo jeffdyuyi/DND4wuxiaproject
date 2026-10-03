@@ -1,9 +1,9 @@
 import { embedCardPNG } from './card-png';
 import { makeArchive } from './archive';
-import type { Item, ProgressionItem } from '../types';
+import type { Item, ProgressionItem, EquipmentItem } from '../types';
 import type { ModuleType } from '../constants';
 export function cardArchive(module: ModuleType, item: Item, format = 'full') {
-    const power = (module === 'traditions' || module === 'paths') ? (item as ProgressionItem).powers.find(power => `power:${power.id}` === format) : undefined;
+    const power = (module === 'items' || module === 'traditions' || module === 'paths') ? (item as ProgressionItem | EquipmentItem).powers?.find(power => `power:${power.id}` === format) : undefined;
     return power ? makeArchive({ moves: [power] }) : makeArchive({ [module]: [item] });
 }
 export async function captureCard(element: HTMLElement, value: unknown) {

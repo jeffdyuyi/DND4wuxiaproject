@@ -7,9 +7,9 @@ import { summarizeImport, type ImportMode } from '../utils/archive';
 import { Dialog } from './Dialog';
 import type { Terminology } from '../utils/terminology';
 
-export function ImportDialog({ db, incoming, terminology, onConfirm, onCancel }: {
+export function ImportDialog({ db, incoming, terminology, colorCount, onConfirm, onCancel }: {
     db: DB; incoming: Partial<DB>; onConfirm: (mode: ImportMode) => void; onCancel: () => void;
-    terminology?: Terminology;
+    terminology?: Terminology; colorCount?: number;
 }) {
     const [mode, setMode] = useState<ImportMode>('skip');
     const result = summarizeImport(db, incoming, mode);
@@ -19,6 +19,7 @@ export function ImportDialog({ db, incoming, terminology, onConfirm, onCancel }:
         <ul>{modules.filter(module => incoming[module]?.length).map(module => <li key={module}>{<TermDisplay>{Config[module].title}</TermDisplay>}<TermDisplay>{"："}</TermDisplay>{<TermDisplay>{incoming[module]?.length}</TermDisplay>}<TermDisplay>{" 条"}</TermDisplay></li>)}</ul>
         {!!warnings.length && <details className="template-warnings"><summary><TermDisplay>{"4E 转换核对："}</TermDisplay>{<TermDisplay>{warnings.length}</TermDisplay>}<TermDisplay>{" 种提示"}</TermDisplay></summary><ul>{warnings.slice(0, 12).map(warning => <li key={warning}>{<TermDisplay>{warning}</TermDisplay>}</li>)}</ul><p><TermDisplay>{"全部提示与原文保留在每张卡的“4E 原版对照”中。"}</TermDisplay></p></details>}
         {terminology && <p><TermDisplay>{"附带 "}</TermDisplay>{<TermDisplay>{terminology.entries.length}</TermDisplay>}<TermDisplay>{" 个术语：补充本地尚无的词，保留本地已有名称和设置。资源的重复处理选项不会覆盖术语。"}</TermDisplay></p>}
+        {colorCount !== undefined && <p>附带 {colorCount} 个自定义配色：补充尚无的颜色，保留本地已有名称。配色与资源分别保存，资源保存结果以上方状态为准。</p>}
         <label className="form-group"><TermDisplay>{"重复 ID 处理"}</TermDisplay><select className="form-control" value={mode} onChange={event => setMode(event.target.value as ImportMode)}>
                 <option value="skip"><TermDisplay>{"不覆盖导入：跳过重复 ID"}</TermDisplay></option>
                 <option value="overwrite"><TermDisplay>{"覆盖保存：替换重复 ID"}</TermDisplay></option>
