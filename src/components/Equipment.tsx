@@ -75,7 +75,7 @@ export function EquipmentCard({ item, summaryOnly = false }: { item: EquipmentIt
         {!!item.versions?.length && <table className="equipment-versions"><thead><tr><th>等级</th><th>价值</th><th>淬炼</th><th>暴击</th></tr></thead><tbody>{item.versions.map(version => <tr key={version.id}><td>{version.level}</td><td><TermDisplay>{version.price}</TermDisplay></td><td><TermDisplay>{version.enhance}</TermDisplay></td><td><RichText text={version.crit} /></td></tr>)}</tbody></table>}
         {item.prop && <div className="indent-block"><span className="label">特性：</span><RichText text={item.prop} /></div>}
         {item.power && <div className="indent-block"><span className="label">神通：</span><RichText text={item.power} /></div>}
-        {summaryOnly ? powers.map(power => <div key={power.id} className="stat-row"><TermDisplay>{power.name}</TermDisplay></div>) : powers.map(power => <div className="embedded-power" key={power.id}><PowerCard item={power} /></div>)}
+        {summaryOnly ? powers.map(power => <div key={power.id} className="stat-row"><TermDisplay>{power.name}</TermDisplay></div>) : powers.map(power => <div className="embedded-power" key={power.id}><PowerCard embedded item={power} /></div>)}
         {item.source && <div className="source-line">来源：{item.source}</div>}
     </div>;
 }

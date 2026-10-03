@@ -1270,3 +1270,19 @@ test('equipment template detail preview includes all versions and embedded rules
     for (const text of ['等级版本', '3级版本', '8级版本', '680gp', '3,400gp', '第二版暴击', '宝物专属招式', '附属效果完整正文']) assert(html.replace(/<!--.*?-->/g, '').includes(text), text);
     assert.deepEqual(draft, snapshot);
 });
+
+
+test('equipment powers render as embedded sections while standalone powers remain independent cards', () => {
+    const { EquipmentCard } = load('components/Equipment.tsx');
+    const item = createResource('items'); item.name = '矮人活力护甲';
+    const power = createResource('moves'); power.name = '矮人活力护甲的疗伤威能'; power.type = 'ultimate'; power.rules = [{ id: 'r', title: '完整规则', text: '恢复额外生命值。' }]; item.powers = [power];
+    const snapshot = structuredClone(item);
+    const html = renderToStaticMarkup(React.createElement(EquipmentCard, { item }));
+    assert.equal((html.match(/class="wuxia-card/g) || []).length, 1);
+    assert(html.includes('class="progression-power"'));
+    assert(html.includes('恢复额外生命值。'));
+    const standalone = renderToStaticMarkup(React.createElement(PowerCard, { item: power }));
+    assert(standalone.includes('class="wuxia-card"'));
+    assert(standalone.includes('class="card-title"'));
+    assert.deepEqual(item, snapshot);
+});

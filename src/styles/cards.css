@@ -50,3 +50,8 @@
 .equipment-versions { width: 100%; border-collapse: collapse; margin-block: .5rem; font-size: .9em; table-layout: fixed; }
 .equipment-versions th, .equipment-versions td { padding: .3rem; border-bottom: 1px solid #ddd; text-align: left; overflow-wrap: anywhere; }
 .equipment-versions th:first-child { width: 15%; }
+
+/* Equipment powers share the parent card boundary instead of nesting a fixed-width card. */
+.equipment-card > .embedded-power > .progression-power { margin: 0; border: 0; border-top: 2px solid #000; }
+.equipment-card > .embedded-power .card-header > :first-child { min-width: 0; overflow-wrap: anywhere; }
+.equipment-card > .embedded-power .card-meta { flex-shrink: 0; white-space: nowrap; }
