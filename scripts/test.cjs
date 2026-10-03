@@ -755,3 +755,57 @@ test('editor text translation and inverse conversion preserve authored URLs and 
     assert.equal(display(value), '纯阳伤害 [纯阳](https://example.org/纯阳/火焰) `火焰`');
     assert.equal(canonical(display(value)), value);
 });
+
+test('pre-mapping vocabulary without original fields fills confirmed presets during archive load', () => {
+    const entries = ['强酸', '寒冰', '火焰'].map(label => ({ id: `4e:damage:${label}`, category: 'damage', value: label, label, origin: '4e' }));
+    entries.push({ id: 'wuxia:damage:纯阳', category: 'damage', value: '纯阳', label: '纯阳', origin: 'wuxia' });
+    const old = { version: 1, autoCollect: true, entries };
+    const db = emptyDB(); db.moves = [createResource('moves')];
+    const raw = JSON.stringify({ ...makeArchive(db), terminology: old });
+    const port = storage({ [STORAGE_KEY]: raw });
+    const loaded = loadLibrary(port);
+    assert.deepEqual(loaded.issues, []);
+    for (const [original, replacement] of [['强酸','腐蚀'], ['寒冰','纯阴'], ['火焰','纯阳']]) assert.equal(loaded.terminology.entries.find(term => term.value === original).replacement, replacement);
+    assert.equal(port.getItem(STORAGE_KEY), raw);
+    assert.deepEqual(loaded.db, db);
+    assert(saveLibrary(port, loaded.db, loaded.terminology).ok);
+    assert.equal(loadLibrary(port).terminology.entries.find(term => term.value === '火焰').replacement, '纯阳');
+});
+test('explicit preset backfill repairs already marked incomplete libraries and preserves other names', () => {
+    const { missingConfirmedMappings, fillConfirmedMappings } = load('utils/term-display.ts');
+    let terms = defaultTerminology();
+    for (const original of ['强酸','寒冰','火焰']) terms = setReplacement(terms, terms.entries.find(term => term.value === original && term.category === 'damage').id, '');
+    terms = setReplacement(terms, terms.entries.find(term => term.value === '毒素' && term.category === 'damage').id, '剧毒');
+    const zone = terms.entries.find(term => term.category === 'effect' && term.value === '区域');
+    terms = setReplacement(terms, zone.id, '');
+    terms = addTerms(terms, 'damage', '星辉');
+    const snapshot = structuredClone(terms);
+    assert.equal(missingConfirmedMappings(terms).length, 3);
+    const filled = validateTerminology(fillConfirmedMappings(terms));
+    assert.deepEqual(terms, snapshot);
+    assert.equal(filled.entries.find(term => term.value === '强酸').replacement, '腐蚀');
+    assert.equal(filled.entries.find(term => term.value === '火焰').replacement, '纯阳');
+    assert.equal(filled.entries.find(term => term.value === '寒冰').replacement, '纯阴');
+    assert.equal(filled.entries.find(term => term.value === '毒素').replacement, '剧毒');
+    assert.equal(filled.entries.find(term => term.id === zone.id).replacement, '');
+    assert(filled.entries.some(term => term.value === '星辉'));
+    assert.equal(missingConfirmedMappings(filled).length, 0);
+    assert.equal(fillConfirmedMappings(filled), filled);
+    const cleared = validateTerminology(setReplacement(filled, filled.entries.find(term => term.value === '火焰').id, ''));
+    assert.equal(validateTerminology(JSON.parse(JSON.stringify(cleared))).entries.find(term => term.value === '火焰').replacement, '');
+});
+
+test('terminology editor renders actual preset input values and a targeted repair for empty mappings', () => {
+    const { TerminologyDialog } = load('components/TerminologyDialog.tsx');
+    const render = terms => renderToStaticMarkup(React.createElement(TerminologyContext.Provider, { value: { terminology: terms, update: () => {}, collect: () => {} } }, React.createElement(TerminologyDialog, { onClose: () => {} })));
+    const initial = defaultTerminology();
+    const markup = render(initial);
+    assert.match(markup, /aria-label="置换：强酸"[^>]*value="腐蚀"/);
+    assert.match(markup, /aria-label="置换：寒冰"[^>]*value="纯阴"/);
+    assert.match(markup, /aria-label="置换：火焰"[^>]*value="纯阳"/);
+    assert(!markup.includes('填入空缺的已确认置换'));
+    const empty = setReplacement(initial, initial.entries.find(term => term.value === '强酸').id, '');
+    const incomplete = render(empty);
+    assert(incomplete.includes('填入空缺的已确认置换（1）'));
+    assert(incomplete.includes('placeholder="留空使用原版称呼"'));
+});

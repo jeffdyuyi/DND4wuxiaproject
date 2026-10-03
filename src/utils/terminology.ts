@@ -109,7 +109,9 @@ export function validateTerminology(value: unknown): Terminology {
         if (term.original !== undefined) return term;
         const baseline = defaults.entries.find(base => base.category === term.category && base.value === term.value);
         const original = baseline?.original || term.value;
-        return { ...term, original, replacement: term.label === original ? '' : term.label, aliases: baseline?.aliases || [], description: baseline?.description };
+        // New preset aliases are not evidence that an old unmodified term was edited.
+        const aliases = term.aliases || (term.category === 'defense' || term.category === 'action' ? baseline?.aliases || [] : term.label === original ? [] : [term.label]);
+        return { ...term, original, replacement: term.label === original ? '' : term.label, aliases, description: baseline?.description };
     });
     if (raw.presetRevision === undefined) migrated = applyWuxiaMappings(migrated, true);
     // Add newly supported standard terms without replacing local preferences.

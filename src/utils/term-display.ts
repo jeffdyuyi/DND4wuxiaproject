@@ -1,7 +1,17 @@
-import { keywordCategories, type Term, type Terminology, type TermCategory } from './terminology';
+import { keywordCategories, WuxiaMappings, type Term, type Terminology, type TermCategory } from './terminology';
 
 export const termName = (term: Term) => term.replacement === undefined ? term.label : term.replacement.trim() || term.original || term.value;
 const translators = new WeakMap<Terminology, Map<string, (text: string) => string>>();
+export function missingConfirmedMappings(library: Terminology) {
+    return WuxiaMappings.filter(([category, original]) => !(category === 'effect' && original === '区域')).flatMap(([category, original, replacement]) => {
+        const term = library.entries.find(term => term.category === category && (term.original || term.value) === original);
+        const current = term?.replacement ?? (term?.label !== (term?.original || term?.value) ? term?.label : '');
+        return term && !current?.trim() ? [{ term, replacement }] : [];
+    });
+}
+export function fillConfirmedMappings(library: Terminology): Terminology {
+    return missingConfirmedMappings(library).reduce((next, { term, replacement }) => setReplacement(next, term.id, replacement), library);
+}
 export function setReplacement(library: Terminology, id: string, replacement: string): Terminology {
     if (/[,，、;；\n]/.test(replacement)) throw new Error('一个置换名称不能包含分隔符');
     const target = library.entries.find(term => term.id === id);

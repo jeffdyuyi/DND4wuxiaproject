@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog } from './Dialog';
 import { useTerminology } from '../hooks/TerminologyContext';
 import { addTerms, TermCategories, type TermCategory, validateTerminology } from '../utils/terminology';
-import { setReplacement, termName } from '../utils/term-display';
+import { setReplacement, termName, missingConfirmedMappings, fillConfirmedMappings } from '../utils/term-display';
 import { downloadJSON, makeArchive, readLibraryArchive } from '../utils/archive';
 
 export function TerminologyDialog({ onClose }: { onClose: () => void }) {
@@ -12,6 +12,8 @@ export function TerminologyDialog({ onClose }: { onClose: () => void }) {
     const [filter, setFilter] = useState('all');
     const [newWord, setNewWord] = useState('');
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
+    const missing = missingConfirmedMappings(terminology);
     const entries = terminology.entries.filter(term => term.category === category &&
         `${term.original || term.value} ${termName(term)} ${term.description || ''}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()) &&
         (filter === 'all' || (filter === 'mapped' && !!term.replacement) || (filter === 'unmapped' && !term.replacement) || (filter === 'custom' && term.origin === 'custom') || (filter === 'hidden' && term.hidden)));
@@ -21,6 +23,11 @@ export function TerminologyDialog({ onClose }: { onClose: () => void }) {
     };
     return <Dialog title="关键词与术语置换工具" className="terminology-workbench" onCancel={onClose}>
         <p className="progression-hint">置换全局影响界面、选词和已有卡片显示；留空恢复 4E 标准名称。原版参考和存档正文保留。隐藏只影响选词，不关闭置换。</p>
+        {missing.length > 0 && <div className="term-toolbar"><p>还有 {missing.length} 项已确认对应尚未填入。此操作只补填空置换，保留已有自定义名称；不包含尚待确认的“区域／阵法”。</p><button className="btn btn-primary" onClick={() => {
+            try { update(validateTerminology(fillConfirmedMappings(terminology))); setError(''); setNotice(`已补填 ${missing.length} 项已确认置换。`); }
+            catch (error) { setError(error instanceof Error ? error.message : '补填失败'); }
+        }}>填入空缺的已确认置换（{missing.length}）</button></div>}
+        {notice && <p role="status">{notice}</p>}
         <label><input type="checkbox" checked={terminology.autoCollect} onChange={event => update({ ...terminology, autoCollect: event.target.checked })} /> 自动收录已确认的新词</label>
         <div className="row term-toolbar">
             <label className="col">分类<select className="form-control" value={category} onChange={event => { setCategory(event.target.value as TermCategory); setError(''); }}>
@@ -40,7 +47,7 @@ export function TerminologyDialog({ onClose }: { onClose: () => void }) {
         <div className="term-list">
             {entries.map(term => <section className={`term-entry ${term.hidden ? 'term-hidden' : ''}`} key={`${term.id}:${term.replacement}`}>
                 <div className="term-original"><strong>{term.original || term.value}</strong><small>{term.origin === 'custom' ? '自定义词' : term.origin === 'wuxia' ? '原有武侠词' : '4E 标准词'} · 显示：{termName(term)}</small></div>
-                <label>置换名称<input aria-label={`置换：${term.original || term.value}`} className="form-control" placeholder={term.original || term.value} defaultValue={term.replacement || ''} onBlur={event => { if (event.target.value !== (term.replacement || '')) rename(term.id, event.target.value); }}
+                <label>置换名称<input aria-label={`置换：${term.original || term.value}`} className="form-control" placeholder="留空使用原版称呼" defaultValue={term.replacement || ''} onBlur={event => { if (event.target.value !== (term.replacement || '')) rename(term.id, event.target.value); }}
                     onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }} /></label>
                 <div className="term-row-actions"><button type="button" className="btn" disabled={!term.replacement} onClick={() => rename(term.id, '')}>恢复原称呼</button>
                     <button type="button" className="btn" onClick={() => update({ ...terminology, entries: terminology.entries.map(current => current.id === term.id ? { ...current, hidden: !current.hidden } : current) })}>{term.hidden ? '恢复选词' : '隐藏选词'}</button></div>
