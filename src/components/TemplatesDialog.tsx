@@ -1,3 +1,5 @@
+import { TemplateDraftPreview } from './TemplateDraftPreview';
+import { TemplateText } from './TemplateText';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Config, type ModuleType } from '../constants';
@@ -23,6 +25,7 @@ export default function TemplatesDialog({ currentModule, authorBytes, onCopy, on
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const request = useRef<AbortController | null>(null);
+    const detailPane = useRef<HTMLElement | null>(null);
     const activateIndex = useCallback((value: TemplateIndex | null) => {
         request.current?.abort();
         setIndex(value); setSelected(null); setDetail(null); setPage(0); setLoading(false); setError('');
@@ -48,6 +51,7 @@ export default function TemplatesDialog({ currentModule, authorBytes, onCopy, on
     const drafts = useMemo(() => detail && index ? adaptTemplate(detail.original, target, index.sourceVersion, detail.powers) : [], [detail, target, index]);
     const choose = async (summary: TemplateSummary) => {
         if (!index) return;
+        detailPane.current?.scrollTo({ top: 0 });
         request.current?.abort(); const controller = new AbortController(); request.current = controller;
         setSelected(summary); setDetail(null); setLoading(true); setError('');
         setTarget(TemplateModules[summary.category].includes(currentModule) ? currentModule : TemplateModules[summary.category][0]);
@@ -84,17 +88,18 @@ export default function TemplatesDialog({ currentModule, authorBytes, onCopy, on
                 {!results.length && <p className="empty-state">{index.entries.length ? '没有匹配模板。' : '请先导入资料包，再检索并复制模板。'}</p>}
                 <div className="toolbar"><button className="btn" disabled={page === 0} onClick={() => setPage(value => value - 1)}>上一页</button><span>{page + 1} / {Math.max(1, Math.ceil(results.length / 40))}</span><button className="btn" disabled={(page + 1) * 40 >= results.length} onClick={() => setPage(value => value + 1)}>下一页</button></div>
             </section>
-            <section className="template-detail" aria-label="原版模板详情">
+            <section className="template-detail" aria-label="模板详情与导入预览" ref={detailPane}>
                 {loading && <p role="status">正在加载正文及附属威能…</p>}
                 {!selected && <p className="empty-state">选择左侧模板查看。</p>}
                 {detail && <>
-                    <h3>{detail.original.name}</h3><p>{detail.original.nameEn} · {detail.original.source}</p>
+                    <header className="template-detail-toolbar"><div><h3>{detail.original.name}</h3><p>{detail.original.nameEn} · {detail.original.source}</p></div><button className="btn btn-primary" disabled={!drafts.length || loading} onClick={() => onCopy(drafts)}>{picker ? "导入到" : "复制为"}{Config[target].title}{!picker && "草稿"}</button></header>
                     {!picker && <label>复制为<select className="form-control" value={target} onChange={event => setTarget(event.target.value as ModuleType)}>{TemplateModules[detail.original.category].map(module => <option key={module} value={module}>{Config[module].title}</option>)}</select></label>}
                     {!!drafts.flatMap(draft => draft.warnings).length && <div className="template-warnings"><strong>转换核对</strong><ul>{[...new Set(drafts.flatMap(draft => draft.warnings))].map(warning => <li key={warning}>{warning}</li>)}</ul></div>}
                     <p className="progression-hint">将创建 {drafts.length} 条独立草稿，保留来源与原始字段。不会覆盖已有资源。</p>
-                    <button className="btn btn-primary" disabled={!drafts.length || loading} onClick={() => onCopy(drafts)}>{picker ? "导入到" : "复制为"}{Config[target].title}{!picker && "草稿"}</button>
-                    <h4>原版正文</h4><pre className="template-body">{originalBody(detail.original)}</pre>
-                    <details><summary>原始字段与引用</summary><pre className="template-body">{JSON.stringify(detail.original, null, 2)}</pre></details>
+                    <div className="template-preview-caption"><strong>导入后可编辑内容</strong><span>以下字段与实际编辑器对应，导入后可修改。</span></div>
+                    {drafts.map(draft => <TemplateDraftPreview key={draft.item.id} draft={draft} />)}
+                    <details className="template-original-reference"><summary>4E 原版正文 · 完整对照</summary><TemplateText original text={originalBody(detail.original)} /></details>
+                    <details className="template-original-reference"><summary>原始字段与引用</summary><pre className="template-body">{JSON.stringify(detail.original, null, 2)}</pre></details>
                 </>}
             </section>
         </div>}

@@ -927,3 +927,52 @@ test('conversion review links target explicit fields and safely fall back to the
     assert.equal(reviewTarget('附属招式：动作未能识别'), 'original');
     assert.equal(reviewTarget('未解析的原版引用：不存在'), 'original');
 });
+
+
+test('template detail preview mirrors school editor fields without changing the import draft', () => {
+    const { TemplateDraftPreview } = load('components/TemplateDraftPreview.tsx');
+    const original = { id: 'class-preview', name: '刺客', category: 'class', source: 'Dragon', sourceText: "''起始HP：''12 + 体质\n! 刺客职业特性\n!! 阴影形态 Shade Form\n完整规则第一段。\n\n第二段限制条件。\n!!! 可选变化\n变化的完整规则。" };
+    const draft = adaptTemplate(original, 'schools', 'v1')[0];
+    const snapshot = structuredClone(draft);
+    const html = renderToStaticMarkup(React.createElement(TemplateDraftPreview, { draft }));
+    assert(html.includes('门派描述'));
+    assert(html.includes('1级生命值'));
+    assert(html.includes('12 + 体质'));
+    assert(html.includes('门派特技'));
+    assert(html.includes('阴影形态 Shade Form'));
+    assert(html.includes('完整规则第一段。'));
+    assert(html.includes('第二段限制条件。'));
+    assert(html.includes('变化的完整规则。'));
+    assert(!html.includes('!! 阴影形态'));
+    assert.deepEqual(draft, snapshot);
+});
+
+test('template detail typography separates headings and preserves inert original text', () => {
+    const { TemplateText } = load('components/TemplateText.tsx');
+    const text = '!! 特性名称\n第一段完整规则。\n\n第二段。\n!!! 子选项\n<script>alert(1)</script>\n{{缺失引用}}';
+    const html = renderToStaticMarkup(React.createElement(TemplateText, { text, original: true }));
+    assert.match(html, /<h4>特性名称<\/h4>/);
+    assert.match(html, /<h5>子选项<\/h5>/);
+    assert(html.includes('<p>第一段完整规则。</p>'));
+    assert(html.includes('<p>第二段。</p>'));
+    assert(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
+    assert(!html.includes('<script>'));
+    assert(html.includes('{{缺失引用}}'));
+});
+
+test('template detail preview keeps progression feature levels, embedded rules and level zero', () => {
+    const { TemplateDraftPreview } = load('components/TemplateDraftPreview.tsx');
+    const item = createResource('traditions'); item.name = '测试传承'; item.entryLevel = '11';
+    item.features = [{ id: 'f', level: '11', name: '行动点特性', desc: '完整特性规则' }];
+    const power = createResource('moves'); power.name = '附属招式'; power.level = 0; power.acquiredLevel = '12'; power.rules = [{ id: 'rule', title: '强化规则', text: '所有强化条件均保留。' }];
+    item.powers = [power];
+    const draft = { module: 'traditions', item, warnings: [] }, snapshot = structuredClone(draft);
+    const html = renderToStaticMarkup(React.createElement(TemplateDraftPreview, { draft }));
+    assert(html.includes('11级获得'));
+    assert(html.includes('12级获得'));
+    assert(html.includes('完整特性规则'));
+    assert(html.includes('所有强化条件均保留。'));
+    assert(html.includes('招式等级'));
+    assert(html.includes('<p><span class="rich-text">0</span></p>'));
+    assert.deepEqual(draft, snapshot);
+});
