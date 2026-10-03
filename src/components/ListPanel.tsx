@@ -16,16 +16,18 @@ export function ListPanel({ items, currentItemId, onSelect, onCreate, onDelete, 
         <div className="list-header">
             <div className="toolbar"><button className="btn btn-primary" onClick={onCreate}>+ 新建</button>
                 <button className="btn" disabled={!selectedIds.length} onClick={() => onExportItems(selectedIds)}>导出选中 ({selectedIds.length})</button></div>
-            <div className="toolbar"><button className="btn" onClick={() => setSelected([...new Set([...selectedIds, ...filteredItems.map(item => item.id)])])}>选择搜索结果</button><button className="btn" onClick={() => setSelected([])}>清空选择</button></div>
+            <div className="resource-search"><input className="form-control" type="search" aria-label="搜索当前资源库" placeholder="搜索名称或规则内容…" value={filter} onChange={event => setFilter(event.target.value)} />{filter && <button className="btn" onClick={() => setFilter('')}>清除</button>}</div>
+            <p className="list-count" role="status">{filter.trim() ? `匹配 ${filteredItems.length} / ${items.length} 条` : `共 ${items.length} 条资源`}{selectedIds.length ? ` · 已选 ${selectedIds.length} 条` : ''}</p>
+            <details className="list-batch"><summary>批量选择与打包</summary><div className="toolbar"><button className="btn" onClick={() => setSelected([...new Set([...selectedIds, ...filteredItems.map(item => item.id)])])}>选择搜索结果</button><button className="btn" onClick={() => setSelected([])}>清空选择</button></div>
             <div className="toolbar"><button className="btn" disabled={busy || !selectedIds.length} onClick={() => onBundle(selectedIds, false)}>打包 JSON</button><button className="btn" disabled={busy || !selectedIds.length} onClick={() => onBundle(selectedIds, true)}>打包 PNG＋JSON</button></div>
-            <input className="form-control" aria-label="搜索当前资源库" placeholder="搜索名称或规则内容…" value={filter} onChange={event => setFilter(event.target.value)} />
+            </details>
         </div>
         <div id="itemList">
             {!items.length && <p className="empty-state">此资源库暂无条目。点击“新建”开始制作，或导入 JSON。</p>}
             {!!items.length && !filteredItems.length && <p className="empty-state">未找到匹配资源。</p>}
             {filteredItems.map(item => <div key={item.id} className={`list-item ${item.id === currentItemId ? 'active' : ''}`}>
                 <input type="checkbox" aria-label={`选择 ${item.name}`} checked={selectedIds.includes(item.id)} onChange={event => setSelected(event.target.checked ? [...selected, item.id] : selected.filter(id => id !== item.id))} />
-                <button className="resource-select" onClick={() => onSelect(item.id)}><span className="item-main">{item.name || '未命名条目'}</span>
+                <button className="resource-select" aria-current={item.id === currentItemId ? 'true' : undefined} onClick={() => onSelect(item.id)}><span className="item-main">{item.name || '未命名条目'}</span>
                     <span className="item-sub">{typeof item.cls === 'string' ? item.cls : typeof item.tier === 'string' ? item.tier : item.entryLevel ? `${String(item.entryLevel)}级起` : item.level !== undefined ? `等级 ${String(item.level)}` : ''}</span>
                 </button>
                 <div className="item-actions">

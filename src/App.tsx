@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { ListPanel } from './components/ListPanel';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
+import { EditorWorkbench } from './components/EditorWorkbench';
 import { HomePage } from './components/HomePage';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -43,6 +44,7 @@ function App() {
   const [saveAs, setSaveAs] = useState(false);
   const [packing, setPacking] = useState(false);
   const [showCards, setShowCards] = useState(false);
+  const [homeSearch, setHomeSearch] = useState('');
   const workingDB = draft ? withItems(db, draft.module, db[draft.module].map(item => item.id === draft.item.id ? draft.item : item)) : db;
   useEffect(() => {
     if (!draft) return;
@@ -120,7 +122,12 @@ function App() {
     setNotice(`已复制 ${drafts.length} 条 4E 草稿。原版保持只读；请查看编辑器中的“4E 原版对照”和转换提示。`);
   };
 
-  return <TerminologyContext.Provider value={{ terminology: library.terminology, update: library.updateTerminology, collect: library.collect }}><div className="app-container">
+  return <TerminologyContext.Provider value={{ terminology: library.terminology, update: library.updateTerminology, collect: library.collect }}><div className="app-container" onKeyDownCapture={event => {
+    if (viewMode === 'tool' && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+      event.preventDefault();
+      if (currentItemId && !library.blocked && !pendingNavigation && !saveAs && !showTerms && !showTemplates && !showCards && !showDisclaimer && !confirmation && !incoming) saveCard();
+    }
+  }}>
     {showCards && <CardLibraryDialog db={workingDB} busy={packing} status={notice} onBundle={(entries, images) => void bundleEntries(entries, images)} onClose={() => setShowCards(false)} />}
     {saveAs && currentItem && <SaveAsDialog name={currentItem.name} onClose={() => setSaveAs(false)} onSave={name => { saveCard(true, name); setSaveAs(false); }} />}
     {pendingNavigation && <Dialog title="当前卡片尚未保存" onCancel={() => setPendingNavigation(null)}><p>请选择如何处理修改，再离开当前卡片。</p><div className="dialog-actions"><button className="btn" onClick={() => setPendingNavigation(null)}>继续编辑</button><button className="btn" onClick={() => { const action = pendingNavigation; setDraft(null); setPendingNavigation(null); performNavigation(action); }}>放弃修改</button><button className="btn" onClick={() => { const next = saveCard(true); const action = pendingNavigation; setPendingNavigation(null); performNavigation(action, next); }}>复制保存</button><button className="btn btn-primary" onClick={() => { const next = saveCard(); const action = pendingNavigation; setPendingNavigation(null); performNavigation(action, next); }}>覆盖保存</button></div></Dialog>}
@@ -140,7 +147,7 @@ function App() {
           {viewMode !== 'home' && <span className="workspace-module">{Config[module].title}</span>}
         </div>
         <span role="status" className={library.blocked || library.dirty || draft ? 'save-status save-warning' : 'save-status'}>
-          {library.blocked ? '保存已暂停' : draft ? '卡片有未保存修改' : library.dirty ? '有未保存修改' : '本地数据就绪'}
+          {library.blocked ? '保存已暂停' : library.error ? '保存失败，请重试' : draft ? '草稿未保存' : library.dirty ? '等待保存' : library.savedAt ? '已保存到本地 · ' + new Date(library.savedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '本地数据就绪'}
         </span>
         <button type="button" className="btn" onClick={exportLibrary}>备份全库</button>
         <button type="button" className="btn" onClick={() => navigate({ kind: 'cards' })}>卡牌库</button>
@@ -160,12 +167,13 @@ function App() {
       {notice && <div className="feedback" role="status">{notice}<button className="btn" onClick={() => setNotice('')}>关闭</button></div>}
       {viewMode === 'tool' && <div className="card-tools"><button className="btn btn-primary" disabled={!currentItem || library.blocked} onClick={() => saveCard()}>覆盖保存</button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => saveCard(true)}>复制保存</button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => setSaveAs(true)}>不覆盖另存</button><button className="btn" disabled={!draft} onClick={() => setDraft(null)}>放弃修改</button><label className="btn import-button">导入卡片<input aria-label="当前工具导入 JSON、PNG 或 ZIP" type="file" accept=".json,.png,.zip" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file, module); }} /></label><label className="btn import-button">导入 4E 模板<input aria-label="当前工具直接导入 4E 模板 JSON" type="file" accept=".json" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file, module); }} /></label><small>修改先保留为草稿；选择保存后写入本地。</small></div>}
       <main className="workspace-content">
-        {viewMode === 'home' ? <HomePage db={db} onNavigate={selectModule} /> : <>
+        {viewMode === 'home' ? <HomePage db={db} onNavigate={selectModule} searchTerm={homeSearch} onSearch={setHomeSearch} /> : <>
           <ListPanel key={`list:${module}`} items={workingDB[module]} currentItemId={currentItemId} onSelect={id => selectModule(module, id)}
             onCreate={createNew} onDelete={id => setConfirmation({ kind: 'delete', module, id })}
             onDuplicate={duplicateItem} onExportItems={exportItems} onBundle={(ids, images) => void bundle(ids, images)} busy={packing} />
-          <Editor key={`editor:${module}:${currentItemId ?? 'empty'}`} module={module} item={currentItem} onChange={updateItem} />
-          <Preview key={`preview:${module}:${currentItemId ?? 'empty'}`} module={module} item={currentItem} />
+          <EditorWorkbench key={`workbench:${module}:${currentItemId ?? 'empty'}`} resourceId={`${module}:${currentItemId ?? 'empty'}`}
+            editor={<Editor module={module} item={currentItem} onChange={updateItem} />}
+            preview={<Preview module={module} item={currentItem} />} />
         </>}
       </main>
     </div>

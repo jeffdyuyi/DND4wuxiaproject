@@ -11,10 +11,12 @@ export function useLibrary() {
     const [blocked, setBlocked] = useState(loaded.issues.length > 0);
     const [dirty, setDirty] = useState(false);
     const [error, setError] = useState('');
+    const [savedAt, setSavedAt] = useState<number | null>(null);
     const save = (next: DB, nextTerms = terminology) => {
         if (blocked) { setDirty(true); setError('存在未恢复的数据，已暂停保存。请先导出恢复文件并确认继续。'); return; }
         const result = saveLibrary(browserStorage, next, nextTerms);
         setDirty(!result.ok); setError(result.ok ? '' : result.error);
+        if (result.ok) setSavedAt(Date.now());
     };
     const update = (next: DB, nextTerms = draft.current.terminology) => {
         draft.current = { db: next, terminology: nextTerms };
@@ -30,6 +32,7 @@ export function useLibrary() {
     const allowSave = () => {
         const result = saveLibrary(browserStorage, db, terminology);
         if (result.ok) setBlocked(false);
+        if (result.ok) setSavedAt(Date.now());
         setDirty(!result.ok); setError(result.ok ? '' : result.error);
     };
     useEffect(() => {
@@ -38,5 +41,5 @@ export function useLibrary() {
         window.addEventListener('beforeunload', warn);
         return () => window.removeEventListener('beforeunload', warn);
     }, [dirty]);
-    return { db, terminology, updateTerminology, collect, update, retry: () => save(db), allowSave, blocked, dirty, error, issues: loaded.issues, recovery: loaded.recovery };
+    return { db, terminology, updateTerminology, collect, update, retry: () => save(db), allowSave, blocked, dirty, error, savedAt, issues: loaded.issues, recovery: loaded.recovery };
 }

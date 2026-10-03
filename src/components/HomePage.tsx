@@ -7,18 +7,21 @@ import { modules, searchResources } from '../utils/resources';
 interface HomePageProps {
     db: DB;
     onNavigate: (module: ModuleType, itemId?: string) => void;
+    searchTerm: string;
+    onSearch: (value: string) => void;
 }
 
-export function HomePage({ db, onNavigate }: HomePageProps) {
-    const [searchTerm, setSearchTerm] = useState('');
+export function HomePage({ db, onNavigate, searchTerm, onSearch }: HomePageProps) {
+    const [category, setCategory] = useState<ModuleType | 'all'>('all');
     const query = searchTerm.trim();
-    const results = useMemo(() => searchResources(db, query), [db, query]);
+    const results = useMemo(() => searchResources(db, query).filter(result => category === 'all' || result.module === category), [db, query, category]);
 
     return <div className="home-page">
         <section className="library-search" aria-labelledby="library-search-title">
             <h2 id="library-search-title">🔍 藏经阁总索引</h2>
             <input className="form-control" aria-label="搜索所有资源" type="search" placeholder="输入关键词搜索所有资源…"
-                value={searchTerm} onChange={event => setSearchTerm(event.target.value)} />
+                value={searchTerm} onChange={event => onSearch(event.target.value)} />
+            <div className="home-filters"><label>资源类型 <select aria-label="筛选搜索资源类型" value={category} onChange={event => setCategory(event.target.value as ModuleType | 'all')}><option value="all">所有资源</option>{modules.map(module => <option key={module} value={module}>{Config[module].title}</option>)}</select></label>{(query || category !== 'all') && <button className="btn" onClick={() => { onSearch(''); setCategory('all'); }}>清除筛选</button>}</div>
             {query && <div className="search-results">
                 <p className="search-count" role="status">找到 {results.length} 个条目</p>
                 {results.length === 0 ? <p className="empty-state">未找到相关条目</p> : results.map(({ module, item }) =>

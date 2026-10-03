@@ -322,7 +322,7 @@ test('collecting a term in the same event does not discard the latest resource d
     }
 });
 
-test('navigation gives sibling panels distinct identities across populated and empty modules', () => {
+test('navigation gives list and workbench distinct identities across populated and empty modules', () => {
     const libraryModule = load('hooks/useLibrary.ts');
     const originalLibrary = libraryModule.useLibrary;
     const originalState = React.useState;
@@ -342,10 +342,11 @@ test('navigation gives sibling panels distinct identities across populated and e
         const { Sidebar } = load('components/Sidebar.tsx');
         const { Editor } = load('components/Editor.tsx');
         const { Preview } = load('components/Preview.tsx');
+        const { EditorWorkbench } = load('components/EditorWorkbench.tsx');
         const find = (element, predicate) => {
             if (!React.isValidElement(element)) return undefined;
             if (predicate(element)) return element;
-            for (const child of React.Children.toArray(element.props.children)) {
+            for (const child of React.Children.toArray(element.props.children).concat([element.props.editor, element.props.preview])) {
                 const result = find(child, predicate);
                 if (result) return result;
             }
@@ -357,10 +358,12 @@ test('navigation gives sibling panels distinct identities across populated and e
             tree = render();
             const main = find(tree, element => element.type === 'main');
             const panels = main.props.children.props.children;
-            assert.equal(panels.length, 3);
-            assert.equal(new Set(panels.map(panel => panel.key)).size, 3, 'sibling keys must be unique');
-            const editor = panels.find(panel => panel.type === Editor);
-            const preview = panels.find(panel => panel.type === Preview);
+            assert.equal(panels.length, 2);
+            assert.equal(new Set(panels.map(panel => panel.key)).size, 2, 'sibling keys must be unique');
+            const workbench = panels.find(panel => panel.type === EditorWorkbench);
+            assert.equal(workbench.props.resourceId, `${module}:${db[module][0]?.id ?? 'empty'}`);
+            const editor = find(workbench, panel => panel.type === Editor);
+            const preview = find(workbench, panel => panel.type === Preview);
             assert.equal(editor.props.module, module);
             assert.equal(editor.props.item, db[module][0] ?? null);
             assert.equal(preview.props.item, editor.props.item);
@@ -385,7 +388,7 @@ test('editing keeps saved cards intact until overwrite, copy or named save-as is
     React.useState = initial => { const index = cursor++; if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial; return [states[index], value => { states[index] = typeof value === 'function' ? value(states[index]) : value; }]; };
     React.useEffect = () => {};
     libraryModule.useLibrary = () => ({ db, terminology: defaultTerminology(), blocked: false, dirty: false, issues: [], update: next => { db = next; } });
-    const find = (element, predicate) => { if (!React.isValidElement(element)) return; if (predicate(element)) return element; for (const child of React.Children.toArray(element.props.children)) { const found = find(child, predicate); if (found) return found; } };
+    const find = (element, predicate) => { if (!React.isValidElement(element)) return; if (predicate(element)) return element; for (const child of React.Children.toArray(element.props.children).concat([element.props.editor, element.props.preview])) { const found = find(child, predicate); if (found) return found; } };
     try {
         const App = load('App.tsx').default, { Editor } = load('components/Editor.tsx'), { Sidebar } = load('components/Sidebar.tsx'), { SaveAsDialog } = load('components/SaveAsDialog.tsx');
         const render = () => { cursor = 0; return App(); };

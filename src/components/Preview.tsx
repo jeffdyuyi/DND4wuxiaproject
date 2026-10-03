@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { RichText } from './RichText';
 import { PowerCard } from './PowerCard';
 import type { ModuleType } from '../constants';
@@ -18,10 +18,24 @@ interface PreviewProps {
 
 export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
     const cardRef = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
     const [format, setFormat] = useState('full');
-    const [scale, setScale] = useState(1);
+    const [zoom, setZoom] = useState('auto');
+    const [size, setSize] = useState({ width: 420, height: 0 });
     const [exporting, setExporting] = useState(false);
     const [feedback, setFeedback] = useState('');
+    useEffect(() => {
+        const panel = panelRef.current, card = cardRef.current;
+        if (!panel || !card) return;
+        const observer = new ResizeObserver(() => {
+            const styles = getComputedStyle(panel);
+            const width = panel.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
+            if (width > 0) setSize({ width, height: card.offsetHeight + 30 });
+        });
+        observer.observe(panel); observer.observe(card);
+        return () => observer.disconnect();
+    }, [item?.id, format]);
+    const scale = zoom === 'auto' ? Math.min(1, Math.max(0.2, size.width / 420)) : Number(zoom);
 
     if (!item) return <div className="preview-panel"></div>;
 
@@ -52,21 +66,21 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
     const content = <CardContent module={module} item={item} format={selectedFormat} />;
 
     return (
-        <div className="preview-panel">
+        <div className="preview-panel" ref={panelRef}>
             <div className="toolbar">
                 {isProgression && <select aria-label="卡片导出格式" value={selectedFormat} onChange={event => setFormat(event.target.value)}>
                     <option value="full">完整资源卡</option><option value="summary">概要卡</option>
                     {powers?.map((power, index) => <option key={power.id} value={`power:${power.id}`}>威能：{power.name || `第 ${index + 1} 张`}</option>)}
                 </select>}
-                <label>预览 <select aria-label="预览缩放" value={scale} onChange={event => setScale(Number(event.target.value))}>
-                    <option value={0.6}>60%</option><option value={0.8}>80%</option><option value={1}>100%</option>
+                <label>预览 <select aria-label="预览缩放" value={zoom} onChange={event => setZoom(event.target.value)}>
+                    <option value="auto">适应宽度</option><option value="0.6">60%</option><option value="0.8">80%</option><option value="1">原尺寸</option><option value="1.2">120%</option>
                 </select></label>
                 <button className="btn btn-primary" disabled={exporting} onClick={() => void exportImage(true)}>复制图片</button>
                 <button className="btn" disabled={exporting} onClick={() => void exportImage(false)}>{exporting ? '生成中…' : '下载 PNG'}</button>
                 <button className="btn" disabled={exporting} onClick={() => downloadJSON(cardArchive(module, item, selectedFormat), `${item.name || '吾侠卡片'}.json`)}>下载单卡 JSON</button>
             </div>
             {feedback && <p role="status" className="export-feedback">{feedback}</p>}
-            <div className="preview-stage" data-preview-scale style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}><div ref={cardRef}>{content}</div></div>
+            <div className="preview-viewport" style={{ width: 420 * scale, height: size.height ? size.height * scale : undefined }}><div className="preview-stage" data-preview-scale style={{ width: 420, transform: `scale(${scale})`, transformOrigin: 'top left' }}><div ref={cardRef}>{content}</div></div></div>
         </div>
     );
 };
