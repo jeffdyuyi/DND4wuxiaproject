@@ -8,6 +8,8 @@ import { ProgressionCard } from './Progression';
 import { resolveCardFormat } from '../utils/card-format';
 import type { ProgressionItem } from '../types';
 import type { Item, MoveItem, EquipmentItem, GeneralItem, SchoolItem, RootItem, OriginItem, DestinyItem } from '../types';
+import { captureCard, cardArchive } from '../utils/card-image';
+import { downloadJSON } from '../utils/archive';
 
 interface PreviewProps {
     module: ModuleType;
@@ -32,26 +34,46 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
         if (!card) return;
         setExporting(true); setFeedback('');
         try {
-            const { default: html2canvas } = await import('html2canvas');
-            await document.fonts.ready;
-            const canvas = await html2canvas(card, { scale: 2, backgroundColor: null,
-                onclone: doc => { doc.querySelectorAll<HTMLElement>('[data-preview-scale]').forEach(element => { element.style.transform = 'none'; }); }
-            });
-            const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('图片过长或无法生成')), 'image/png'));
+            const blob = await captureCard(card, cardArchive(module, item, selectedFormat));
             if (copy) {
                 if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('此浏览器不支持复制图片，请下载 PNG');
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                setFeedback('图片已复制');
+                setFeedback('图片已复制供展示；需要重新编辑时请保留下载的 PNG 或 JSON。');
             } else {
                 const url = URL.createObjectURL(blob), link = document.createElement('a');
                 link.download = `${item.name.replace(/[<>:"/\\|?*]/g, '_') || '吾侠资源'}_${selectedFormat.replace(':', '_')}.png`;
                 link.href = url; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-                setFeedback('图片已生成并下载');
+                setFeedback('可编辑 PNG 已下载，可通过导入卡片恢复数据。');
             }
         } catch (error) { setFeedback(`导出失败：${error instanceof Error ? error.message : '请尝试概要卡或单张威能卡'}`); }
         finally { setExporting(false); }
     };
 
+    const content = <CardContent module={module} item={item} format={selectedFormat} />;
+
+    return (
+        <div className="preview-panel">
+            <div className="toolbar">
+                {isProgression && <select aria-label="卡片导出格式" value={selectedFormat} onChange={event => setFormat(event.target.value)}>
+                    <option value="full">完整资源卡</option><option value="summary">概要卡</option>
+                    {powers?.map((power, index) => <option key={power.id} value={`power:${power.id}`}>威能：{power.name || `第 ${index + 1} 张`}</option>)}
+                </select>}
+                <label>预览 <select aria-label="预览缩放" value={scale} onChange={event => setScale(Number(event.target.value))}>
+                    <option value={0.6}>60%</option><option value={0.8}>80%</option><option value={1}>100%</option>
+                </select></label>
+                <button className="btn btn-primary" disabled={exporting} onClick={() => void exportImage(true)}>复制图片</button>
+                <button className="btn" disabled={exporting} onClick={() => void exportImage(false)}>{exporting ? '生成中…' : '下载 PNG'}</button>
+                <button className="btn" disabled={exporting} onClick={() => downloadJSON(cardArchive(module, item, selectedFormat), `${item.name || '吾侠卡片'}.json`)}>下载单卡 JSON</button>
+            </div>
+            {feedback && <p role="status" className="export-feedback">{feedback}</p>}
+            <div className="preview-stage" data-preview-scale style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}><div ref={cardRef}>{content}</div></div>
+        </div>
+    );
+};
+
+export function CardContent({ module, item, format = "full" }: { module: ModuleType; item: Item; format?: string }) {
+    const powers = module === "traditions" || module === "paths" ? (item as ProgressionItem).powers : [];
+    const selectedFormat = resolveCardFormat(format, powers);
     const md = (text?: string) => <RichText text={text} />;
 
     let content;
@@ -227,21 +249,6 @@ export const Preview: React.FC<PreviewProps> = ({ module, item }) => {
         );
     }
 
-    return (
-        <div className="preview-panel">
-            <div className="toolbar">
-                {isProgression && <select aria-label="卡片导出格式" value={selectedFormat} onChange={event => setFormat(event.target.value)}>
-                    <option value="full">完整资源卡</option><option value="summary">概要卡</option>
-                    {powers?.map((power, index) => <option key={power.id} value={`power:${power.id}`}>威能：{power.name || `第 ${index + 1} 张`}</option>)}
-                </select>}
-                <label>预览 <select aria-label="预览缩放" value={scale} onChange={event => setScale(Number(event.target.value))}>
-                    <option value={0.6}>60%</option><option value={0.8}>80%</option><option value={1}>100%</option>
-                </select></label>
-                <button className="btn btn-primary" disabled={exporting} onClick={() => void exportImage(true)}>复制图片</button>
-                <button className="btn" disabled={exporting} onClick={() => void exportImage(false)}>{exporting ? '生成中…' : '下载 PNG'}</button>
-            </div>
-            {feedback && <p role="status" className="export-feedback">{feedback}</p>}
-            <div className="preview-stage" data-preview-scale style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}><div ref={cardRef}>{content}</div></div>
-        </div>
-    );
-};
+
+    return content;
+}

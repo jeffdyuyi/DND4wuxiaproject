@@ -5,8 +5,9 @@ interface ListPanelProps {
     items: Item[]; currentItemId: string | null; onSelect: (id: string) => void;
     onCreate: () => void; onDelete: (id: string) => void;
     onDuplicate: (id: string) => void; onExportItems: (ids: string[]) => void;
+    onBundle: (ids: string[], images: boolean) => void; busy: boolean;
 }
-export function ListPanel({ items, currentItemId, onSelect, onCreate, onDelete, onDuplicate, onExportItems }: ListPanelProps) {
+export function ListPanel({ items, currentItemId, onSelect, onCreate, onDelete, onDuplicate, onExportItems, onBundle, busy }: ListPanelProps) {
     const [filter, setFilter] = useState('');
     const [selected, setSelected] = useState<string[]>([]);
     const filteredItems = items.filter(item => resourceSearchText(item).includes(filter.trim().toLocaleLowerCase()));
@@ -15,6 +16,8 @@ export function ListPanel({ items, currentItemId, onSelect, onCreate, onDelete, 
         <div className="list-header">
             <div className="toolbar"><button className="btn btn-primary" onClick={onCreate}>+ 新建</button>
                 <button className="btn" disabled={!selectedIds.length} onClick={() => onExportItems(selectedIds)}>导出选中 ({selectedIds.length})</button></div>
+            <div className="toolbar"><button className="btn" onClick={() => setSelected([...new Set([...selectedIds, ...filteredItems.map(item => item.id)])])}>选择搜索结果</button><button className="btn" onClick={() => setSelected([])}>清空选择</button></div>
+            <div className="toolbar"><button className="btn" disabled={busy || !selectedIds.length} onClick={() => onBundle(selectedIds, false)}>打包 JSON</button><button className="btn" disabled={busy || !selectedIds.length} onClick={() => onBundle(selectedIds, true)}>打包 PNG＋JSON</button></div>
             <input className="form-control" aria-label="搜索当前资源库" placeholder="搜索名称或规则内容…" value={filter} onChange={event => setFilter(event.target.value)} />
         </div>
         <div id="itemList">

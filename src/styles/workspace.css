@@ -35,6 +35,14 @@
 .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .btn-danger { background: #8a2424; color: white; border-color: #8a2424; }
 .btn { min-height: 30px; }
+.card-tools { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 16px; align-items: center; background: #f4f1e9; border-bottom: 1px solid var(--ui-border); }
+.card-tools small { color: #66747d; }
+.batch-card-stage { position: fixed; left: -10000px; top: 0; width: 400px; pointer-events: none; }
+.batch-card-stage .wuxia-card { width: 400px; box-sizing: border-box; }
+.card-library-dialog { width: min(850px, calc(100vw - 32px)); }
+.card-library-list { max-height: 45vh; overflow-y: auto; margin: 12px 0; }
+.card-library-row { display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid var(--ui-border); }
+.card-library-row small { margin-left: auto; color: #66747d; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn:hover:not(:disabled) { filter: brightness(0.95); }
 :focus-visible { outline: 2px solid #1565c0; outline-offset: 2px; }

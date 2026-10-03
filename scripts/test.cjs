@@ -28,6 +28,12 @@ function storage(initial = {}) {
     const values = new Map(Object.entries(initial));
     return { values, getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
 }
+function testPNG() {
+    const { crc32 } = load('utils/card-png.ts');
+    const chunk = (type, data) => { const buffer = Buffer.alloc(data.length + 12); buffer.writeUInt32BE(data.length); buffer.write(type, 4); buffer.set(data, 8); buffer.writeUInt32BE(crc32(buffer.subarray(4, -4)), buffer.length - 4); return buffer; };
+    const header = Buffer.alloc(13); header.writeUInt32BE(1, 0); header.writeUInt32BE(1, 4); header[8] = 8; header[9] = 6;
+    return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]), chunk('IHDR', header), chunk('IDAT', require('node:zlib').deflateSync(Buffer.from([0,0,0,0,255]))), chunk('IEND', Buffer.alloc(0))]);
+}
 
 test('power templates preserve primary, secondary and unrecognized rule sections without mutating originals', () => {
     const original = { id: 'source-power', name: '原版威能', category: 'power', usage: 'encounter', actionType: '即时中断', level: '11', keywords: '武器，雷鸣', range: '近战 兵器', details: '<table><tr><th>攻击：</th><td>力量 vs. AC</td></tr><tr><th>命中：</th><td>1[W]伤害</td></tr><tr><th>次攻击：</th><td>另一个目标</td></tr><tr><th>命中：</th><td>次攻击伤害</td></tr></table>' };
@@ -172,6 +178,68 @@ test('resource manager renders package, quota and search-independent cache contr
     assert(markup.includes('2.0 KB'));
 });
 
+test('editable PNGs preserve Unicode, nested data and unknown fields; corrupt or ordinary images reject', () => {
+    const { embedCardPNG, readCardPNG, crc32 } = load('utils/card-png.ts');
+    assert.equal(crc32(new TextEncoder().encode('123456789')), 0xcbf43926);
+    const png = testPNG();
+    const item = createResource('traditions'); item.name = '踏雪 · 中文'; item.custom = { text: '保留未知字段' };
+    const archive = makeArchive({ traditions: [item] });
+    const encoded = embedCardPNG(png, archive);
+    assert.deepEqual(readCardPNG(encoded), archive);
+    assert.deepEqual(readArchive(readCardPNG(encoded)).traditions[0], item);
+    const changed = { ...archive, exportedAt: 'updated' };
+    assert.deepEqual(readCardPNG(embedCardPNG(encoded, changed)), changed);
+    assert.throws(() => readCardPNG(png), /普通截图/);
+    const corrupt = encoded.slice(); corrupt[corrupt.length - 13] ^= 1;
+    assert.throws(() => readCardPNG(corrupt), /校验/);
+    assert.throws(() => readCardPNG(encoded.subarray(0, encoded.length - 3)), /完整/);
+});
+
+test('card ZIP imports deduplicate image and JSON pairs and reject ambiguous IDs and excessive entries', () => {
+    const { readCardBytes, packFiles } = load('utils/card-files.ts');
+    const item = createResource('moves'); item.name = '测试单卡';
+    const archive = makeArchive({ moves: [item] });
+    const encode = value => new TextEncoder().encode(JSON.stringify(value));
+    const { embedCardPNG } = load('utils/card-png.ts');
+    const zip = packFiles({ 'one.json': encode(archive), 'same-card.png': embedCardPNG(testPNG(), archive), 'duplicate.json': encode(archive), 'README.txt': encode('说明') });
+    const result = readCardBytes(zip, 'cards.zip'); assert.equal(result.data.moves.length, 1);
+    const second = makeArchive({ moves: [{ ...item, name: '不同的内容' }] });
+    assert.throws(() => readCardBytes(packFiles({ 'one.json': encode(archive), 'two.json': encode(second) }), 'cards.zip'), /数据不同/);
+    assert.throws(() => readCardBytes(packFiles(Object.fromEntries(Array.from({ length: 501 }, (_, index) => [`${index}.json`, encode(archive)]))), 'many.zip'), /500/);
+    assert.throws(() => readCardBytes(encode({ ...archive, schemaVersion: 2 }), 'future.json'), /版本/);
+});
+
+test('direct 4E JSON imports map only the selected tool and preserve embedded references', () => {
+    const { readCardValue } = load('utils/card-files.ts');
+    const power = { id: 'p', name: '原版招式', category: 'power', usage: 'encounter', actionType: '标准动作', level: '11', details: '<table><tr><th>效果：</th><td>保留完整效果</td></tr></table>' };
+    const path = { id: 'path', name: '原版传承', category: 'paragon-path', wiki: { transclusions: ['p'] }, sourceText: '!! 11级：能力\n能力正文\n{{p}}' };
+    assert.throws(() => readCardValue(power), /对应工具/);
+    assert.throws(() => readCardValue(power, 'items'), /当前工具/);
+    const imported = readCardValue([power, path], 'traditions');
+    assert.equal(imported.data.traditions.length, 1);
+    assert.equal(imported.data.traditions[0].powers[0].templateReference.entryId, 'p');
+    assert.equal(imported.data.traditions[0].templateReference.originalJSON, JSON.stringify(path));
+});
+
+test('standalone power archives match their rendered card and keep parent resources separate', () => {
+    const { cardArchive } = load('utils/card-image.ts');
+    const { CardContent } = load('components/Preview.tsx');
+    const parent = createResource('paths'); parent.name = '成道测试'; parent.powers[0].name = '独立威能';
+    const power = parent.powers[0];
+    assert.equal(cardArchive('paths', parent, `power:${power.id}`).data.moves[0].id, power.id);
+    assert.equal(cardArchive('paths', parent, 'summary').data.paths[0].id, parent.id);
+    const markup = renderToStaticMarkup(React.createElement(CardContent, { module: 'paths', item: parent, format: `power:${power.id}` }));
+    assert(markup.includes('独立威能')); assert(!markup.includes('成道测试'));
+    assert.equal(duplicateResource(parent).templateReference, undefined);
+});
+
+test('author information remains complete in its compact layout', () => {
+    const { DisclaimerModal } = load('components/DisclaimerModal.tsx');
+    const markup = renderToStaticMarkup(React.createElement(DisclaimerModal, { onClose: () => {} }));
+    for (const value of ['哈基米德', '基德', 'Antigravity Gemini', 'Codex GPT', '261751459', '691707475', 'nogubird.top', 'ifdian.net/a/nogubird', '严禁商业用途', 'DND4E']) assert(markup.includes(value));
+    assert(markup.includes('author-dialog'));
+});
+
 test('reference vocabulary has valid categories, preserved wuxia words and stable rule codes', () => {
     const terms = validateTerminology(defaultTerminology());
     assert(terms.entries.some(term => term.category === 'damage' && term.label === '火焰'));
@@ -258,6 +326,7 @@ test('navigation gives sibling panels distinct identities across populated and e
     const libraryModule = load('hooks/useLibrary.ts');
     const originalLibrary = libraryModule.useLibrary;
     const originalState = React.useState;
+    const originalEffect = React.useEffect; React.useEffect = () => {};
     const db = emptyDB();
     db.schools = [createResource('schools')];
     const states = [];
@@ -303,8 +372,43 @@ test('navigation gives sibling panels distinct identities across populated and e
         assert.equal(db.moves.length, 0, 'navigation must not create placeholder resources');
     } finally {
         React.useState = originalState;
+        React.useEffect = originalEffect;
         libraryModule.useLibrary = originalLibrary;
     }
+});
+
+test('editing keeps saved cards intact until overwrite, copy or named save-as is chosen', () => {
+    const libraryModule = load('hooks/useLibrary.ts');
+    const originalLibrary = libraryModule.useLibrary, originalState = React.useState, originalEffect = React.useEffect;
+    let db = emptyDB(); const original = createResource('moves'); original.name = '原卡'; db.moves = [original];
+    const states = []; let cursor = 0;
+    React.useState = initial => { const index = cursor++; if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial; return [states[index], value => { states[index] = typeof value === 'function' ? value(states[index]) : value; }]; };
+    React.useEffect = () => {};
+    libraryModule.useLibrary = () => ({ db, terminology: defaultTerminology(), blocked: false, dirty: false, issues: [], update: next => { db = next; } });
+    const find = (element, predicate) => { if (!React.isValidElement(element)) return; if (predicate(element)) return element; for (const child of React.Children.toArray(element.props.children)) { const found = find(child, predicate); if (found) return found; } };
+    try {
+        const App = load('App.tsx').default, { Editor } = load('components/Editor.tsx'), { Sidebar } = load('components/Sidebar.tsx'), { SaveAsDialog } = load('components/SaveAsDialog.tsx');
+        const render = () => { cursor = 0; return App(); };
+        const button = (tree, text) => find(tree, element => element.type === 'button' && element.props.children === text);
+        let tree = render(); find(tree, element => element.type === Sidebar).props.onSwitchModule('moves'); tree = render();
+        find(tree, element => element.type === Editor).props.onChange({ ...original, name: '新风味' }); tree = render();
+        assert.equal(db.moves[0].name, '原卡');
+        button(tree, '复制保存').props.onClick(); tree = render();
+        assert.equal(db.moves.length, 2); assert.equal(db.moves.find(item => item.id === original.id).name, '原卡');
+        const copy = db.moves[0]; assert.notEqual(copy.id, original.id);
+        find(tree, element => element.type === Editor).props.onChange({ ...copy, name: '另存草稿' }); tree = render();
+        button(tree, '不覆盖另存').props.onClick(); tree = render();
+        find(tree, element => element.type === SaveAsDialog).props.onSave('独立新卡'); tree = render();
+        assert.equal(db.moves.length, 3); assert.equal(db.moves.find(item => item.id === copy.id).name, copy.name); assert.equal(db.moves[0].name, '独立新卡');
+        const saved = db.moves[0]; find(tree, element => element.type === Editor).props.onChange({ ...saved, name: '覆盖后的名字' }); tree = render();
+        button(tree, '覆盖保存').props.onClick(); tree = render();
+        assert.equal(db.moves.length, 3); assert.equal(db.moves.find(item => item.id === saved.id).name, '覆盖后的名字');
+        find(tree, element => element.type === Editor).props.onChange({ ...db.moves[0], name: '不应偷偷保存' }); tree = render();
+        find(tree, element => element.type === Sidebar).props.onSwitchModule('paths'); tree = render();
+        assert.equal(find(tree, element => element.type === Editor).props.module, 'moves');
+        button(tree, '放弃修改').props.onClick(); tree = render();
+        assert.equal(find(tree, element => element.type === Editor).props.module, 'paths'); assert.equal(db.moves[0].name, '覆盖后的名字');
+    } finally { React.useState = originalState; React.useEffect = originalEffect; libraryModule.useLibrary = originalLibrary; }
 });
 
 test('denied browser storage getter reports failure without crashing', () => {
