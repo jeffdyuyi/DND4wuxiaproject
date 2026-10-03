@@ -80,7 +80,7 @@ function App() {
   };
 
   return <TerminologyContext.Provider value={{ terminology: library.terminology, update: library.updateTerminology, collect: library.collect }}><div className="app-container">
-    {showTemplates && <Suspense fallback={<div className="feedback" role="status">正在打开模板库…</div>}><TemplatesDialog currentModule={module} onCopy={copyTemplates} onClose={() => setShowTemplates(false)} /></Suspense>}
+    {showTemplates && <Suspense fallback={<div className="feedback" role="status">正在打开资源管理…</div>}><TemplatesDialog currentModule={module} authorBytes={new TextEncoder().encode(JSON.stringify({ db, terminology: library.terminology })).byteLength} onCopy={copyTemplates} onClose={() => setShowTemplates(false)} /></Suspense>}
     {showTerms && <TerminologyDialog onClose={() => setShowTerms(false)} />}
     {showDisclaimer && <DisclaimerModal onClose={() => setShowDisclaimer(false)} />}
     {confirmation && <ConfirmModal
@@ -100,7 +100,7 @@ function App() {
         </span>
         <button type="button" className="btn" onClick={exportLibrary}>备份全库</button>
         <button type="button" className="btn" onClick={() => setShowTerms(true)}>术语库</button>
-        <button type="button" className="btn" onClick={() => setShowTemplates(true)}>4E 模板</button>
+        <button type="button" className="btn" onClick={() => setShowTemplates(true)}>资源管理</button>
         <label className="btn import-button">导入 JSON<input aria-label="导入资源 JSON" type="file" accept=".json,application/json" onChange={event => {
           const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file);
         }} /></label>

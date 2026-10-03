@@ -105,6 +105,7 @@ test('private template packs validate atomically, preserve source snapshots and 
     const parent = { id: 'private-path', name: '自定义测试传承', category: 'paragon-path', wiki: { transclusions: [power.id] } };
     const pack = { version: 1, sourceVersion: 'test-private', originals: [power, parent] };
     const index = importTemplatePack(pack);
+    assert.equal(index.entries[0].searchText, '');
     power.name = '外部修改';
     const signal = new AbortController().signal;
     const result = await loadTemplate('/', index.entries[1], index, signal);
@@ -113,6 +114,62 @@ test('private template packs validate atomically, preserve source snapshots and 
     assert.throws(() => importTemplatePack({ ...pack, originals: [{ ...parent, wiki: { transclusions: [123] } }] }), /引用/);
     assert.throws(() => importTemplatePack({ ...pack, version: 2 }), /版本/);
     assert.equal((await loadTemplateIndex('/', signal)).sourceVersion, 'test-private');
+});
+
+test('large template caches persist beyond 5 MB and failed transactions keep previous packs', async () => {
+    const fake = require('fake-indexeddb');
+    const before = global.indexedDB; global.indexedDB = fake.indexedDB;
+    const { savePack, listPacks, readPack, readSetting, deletePack } = load('utils/template-cache.ts');
+    const identity = { id: 'test-large', name: '大资料测试', source: 'test' };
+    const pack = { version: 1, sourceVersion: 'v1', originals: [{ id: 'large', name: '测试资源', category: 'feat', sourceText: 'a'.repeat(6 * 1024 * 1024) }] };
+    try {
+        const info = await savePack(pack, identity);
+        assert(info.bytes > 5 * 1024 * 1024);
+        assert.equal((await readPack(identity.id)).originals[0].sourceText.length, 6 * 1024 * 1024);
+        assert.equal(await readSetting('active'), identity.id);
+        assert.equal((await listPacks())[0].hash.length, 64);
+        const originalPut = fake.IDBObjectStore.prototype.put;
+        fake.IDBObjectStore.prototype.put = function(...args) { if (this.name === 'info') throw new Error('simulated transaction failure'); return originalPut.apply(this, args); };
+        try { await assert.rejects(savePack({ ...pack, sourceVersion: 'v2', originals: [{ id: 'new', name: '新版', category: 'feat' }] }, identity), /simulated/); }
+        finally { fake.IDBObjectStore.prototype.put = originalPut; }
+        assert.equal((await readPack(identity.id)).sourceVersion, 'v1');
+        assert.equal((await listPacks())[0].count, 1);
+        await assert.rejects(savePack({ ...pack, originals: [{ id: 'bad', name: '坏资料', category: 'unknown' }] }, identity), /类别/);
+        assert.equal((await readPack(identity.id)).sourceVersion, 'v1');
+        await deletePack(identity.id);
+        assert.equal((await listPacks()).length, 0); assert.equal(await readSetting('active'), undefined);
+    } finally { global.indexedDB = before; }
+});
+
+test('remote template downloads restrict sources and validate counts, cancellation and changing manifests', async () => {
+    const { downloadRemotePack, REMOTE_SOURCE } = load('utils/template-remote.ts');
+    const categories = Object.keys(TemplateModules);
+    const manifest = { schemaVersion: 1, generatedAt: '2026-01-01T00:00:00Z', categories: Object.fromEntries(categories.map(category => [category, { count: 1, file: `categories/${category}.json` }])) };
+    const previous = global.fetch; let mismatch = false, changed = false, requests = 0;
+    global.fetch = async (url, options) => {
+        assert(String(url).startsWith(REMOTE_SOURCE)); assert.equal(options.credentials, 'omit');
+        if (String(url).endsWith('manifest.json')) return new Response(JSON.stringify({ ...manifest, generatedAt: changed && requests++ ? 'new-version' : manifest.generatedAt }));
+        const category = String(url).split('/').pop().replace('.json', '');
+        return new Response(JSON.stringify([{ id: category, name: category, category: mismatch ? 'race' : category }]));
+    };
+    try {
+        const pack = await downloadRemotePack(new AbortController().signal, () => {});
+        assert.equal(pack.originals.length, 7);
+        mismatch = true; await assert.rejects(downloadRemotePack(new AbortController().signal, () => {}), /不一致/); mismatch = false;
+        changed = true; requests = 0; await assert.rejects(downloadRemotePack(new AbortController().signal, () => {}), /更新/); changed = false;
+        const controller = new AbortController();
+        await assert.rejects(downloadRemotePack(controller.signal, message => { if (message.includes('下载')) controller.abort(); }), /abort/i);
+    } finally { global.fetch = previous; }
+});
+
+test('resource manager renders package, quota and search-independent cache controls', () => {
+    const { ResourceManagerPanel } = load('components/ResourceManagerPanel.tsx');
+    const markup = renderToStaticMarkup(React.createElement(ResourceManagerPanel, { onActivate: () => {}, authorBytes: 2048 }));
+    assert(markup.includes('浏览器缓存占用'));
+    assert(markup.includes('获取 4E NEXT 初始资料'));
+    assert(markup.includes('导入资料包'));
+    assert(markup.includes('配额由浏览器决定'));
+    assert(markup.includes('2.0 KB'));
 });
 
 test('reference vocabulary has valid categories, preserved wuxia words and stable rule codes', () => {

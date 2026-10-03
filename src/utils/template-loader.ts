@@ -1,8 +1,9 @@
-import { TemplateCategories, type OriginalEntry, type TemplateIndex, type TemplateSummary } from './templates';
+import { originalBody, TemplateCategories, type OriginalEntry, type TemplateIndex, type TemplateSummary } from './templates';
 
 const chunks = new Map<string, OriginalEntry[]>();
 let imported: { index: TemplateIndex; rows: OriginalEntry[] } | null = null;
-export function importTemplatePack(value: unknown): TemplateIndex {
+export interface TemplatePack { version: 1; sourceVersion: string; originals: OriginalEntry[]; }
+export function prepareTemplatePack(value: unknown) {
     if (!value || typeof value !== 'object') throw new Error('资料包必须是 JSON 对象');
     const pack = value as { version?: number; sourceVersion?: string; originals?: OriginalEntry[] };
     if (pack.version !== 1 || typeof pack.sourceVersion !== 'string' || !Array.isArray(pack.originals) || !pack.originals.length || pack.originals.length > 100000) throw new Error('资料包版本、来源或条目数量无效');
@@ -12,14 +13,21 @@ export function importTemplatePack(value: unknown): TemplateIndex {
         const key = `${entry.category}:${entry.id}`;
         if (ids.has(key)) throw new Error('资料包包含重复条目 ID');
         ids.add(key);
-        if (entry.fields && (typeof entry.fields !== 'object' || Object.values(entry.fields).some(value => typeof value !== 'string'))) throw new Error('原版字段必须是文本');
+        for (const key of ['nameEn', 'source', 'sourceText', 'details', 'flavorText', 'keywords', 'range', 'usage', 'usageZh', 'actionType', 'powerType', 'grantedBy', 'prerequisite', 'benefit']) if (entry[key] !== undefined && typeof entry[key] !== 'string') throw new Error(`原版 ${key} 字段必须是文本`);
+        if (entry.wiki !== undefined && (!entry.wiki || typeof entry.wiki !== 'object' || Array.isArray(entry.wiki))) throw new Error('原版引用格式错误');
+        if (entry.fields && (typeof entry.fields !== 'object' || Array.isArray(entry.fields) || Object.values(entry.fields).some(value => typeof value !== 'string'))) throw new Error('原版字段必须是文本');
         if (entry.wiki?.transclusions && (!Array.isArray(entry.wiki.transclusions) || entry.wiki.transclusions.some(ref => typeof ref !== 'string'))) throw new Error('原版引用格式错误');
     }
     const rows = structuredClone(pack.originals);
-    const index: TemplateIndex = { version: 1, dataset: 'user-import', sourceVersion: pack.sourceVersion, entries: rows.map(entry => ({ id: entry.id, name: entry.name, nameEn: typeof entry.nameEn === 'string' ? entry.nameEn : '', category: entry.category, source: typeof entry.source === 'string' ? entry.source : '', level: String(entry.level ?? entry.itemLevel ?? entry.fields?.level ?? ''), keywords: String(entry.keywords ?? entry.fields?.keywords ?? ''), file: 'imported.json' })) };
-    imported = { index, rows };
+    const index: TemplateIndex = { version: 1, dataset: 'user-import', sourceVersion: pack.sourceVersion, entries: rows.map(entry => ({ id: entry.id, name: entry.name, nameEn: typeof entry.nameEn === 'string' ? entry.nameEn : '', category: entry.category, source: typeof entry.source === 'string' ? entry.source : '', level: String(entry.level ?? entry.itemLevel ?? entry.fields?.level ?? ''), keywords: String(entry.keywords ?? entry.fields?.keywords ?? ''), searchText: originalBody(entry).toLocaleLowerCase(), file: 'imported.json' })) };
+    return { index, rows };
+}
+export function importTemplatePack(value: unknown): TemplateIndex {
+    imported = prepareTemplatePack(value);
+    const { index } = imported;
     return index;
 }
+export function clearTemplatePack() { imported = null; chunks.clear(); }
 async function readJSON(base: string, file: string, signal: AbortSignal) {
     if (!/^[a-z\d-]+\.json$/.test(file)) throw new Error('模板文件名无效');
     const response = await fetch(`${base}4e-templates/${file}`, { signal });

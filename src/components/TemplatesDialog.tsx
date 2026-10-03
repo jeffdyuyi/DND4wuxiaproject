@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Config, type ModuleType } from '../constants';
 import { adaptTemplate, originalBody, TemplateCategories, TemplateModules, type OriginalEntry, type TemplateDraft, type TemplateIndex, type TemplateSummary } from '../utils/templates';
-import { importTemplatePack, loadTemplate, loadTemplateIndex } from '../utils/template-loader';
+import { loadTemplate } from '../utils/template-loader';
+import { ResourceManagerPanel } from './ResourceManagerPanel';
 
-export default function TemplatesDialog({ currentModule, onCopy, onClose }: { currentModule: ModuleType; onCopy: (drafts: TemplateDraft[]) => void; onClose: () => void }) {
+export default function TemplatesDialog({ currentModule, authorBytes, onCopy, onClose }: { currentModule: ModuleType; authorBytes: number; onCopy: (drafts: TemplateDraft[]) => void; onClose: () => void }) {
     const base = import.meta.env.BASE_URL;
     const [index, setIndex] = useState<TemplateIndex | null>(null);
     const [category, setCategory] = useState('');
@@ -15,29 +16,15 @@ export default function TemplatesDialog({ currentModule, onCopy, onClose }: { cu
     const [target, setTarget] = useState<ModuleType>(currentModule);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [retry, setRetry] = useState(0);
     const request = useRef<AbortController | null>(null);
-    const importRevision = useRef(0);
-    const importPack = async (file?: File) => {
-        if (!file) return;
+    const activateIndex = useCallback((value: TemplateIndex | null) => {
         request.current?.abort();
-        try {
-            if (file.size > 100 * 1024 * 1024) throw new Error('资料包超过 100 MB，请拆分后导入');
-            const value = importTemplatePack(JSON.parse(await file.text()));
-            importRevision.current += 1;
-            setIndex(value); setSelected(null); setDetail(null); setPage(0); setLoading(false); setError('');
-        } catch (error) { setError(error instanceof Error ? error.message : '资料包读取失败'); }
-    };
-    useEffect(() => {
-        const controller = new AbortController();
-        const revision = importRevision.current;
-        loadTemplateIndex(base, controller.signal).then(value => { if (!controller.signal.aborted && revision === importRevision.current) { setIndex(value); setError(''); } })
-            .catch(error => { if (!controller.signal.aborted && revision === importRevision.current) setError(error instanceof Error ? error.message : '模板加载失败'); });
-        return () => { controller.abort(); request.current?.abort(); };
-    }, [base, retry]);
+        setIndex(value); setSelected(null); setDetail(null); setPage(0); setLoading(false); setError('');
+    }, []);
+    useEffect(() => () => request.current?.abort(), []);
     const results = useMemo(() => {
         const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-        return index?.entries.filter(entry => (!category || entry.category === category) && words.every(word => `${entry.name} ${entry.nameEn} ${entry.source} ${entry.level} ${entry.keywords}`.toLocaleLowerCase().includes(word))) ?? [];
+        return index?.entries.filter(entry => (!category || entry.category === category) && words.every(word => `${entry.name} ${entry.nameEn} ${entry.source} ${entry.level} ${entry.keywords}`.toLocaleLowerCase().includes(word) || entry.searchText?.includes(word))) ?? [];
     }, [index, query, category]);
     const drafts = useMemo(() => detail && index ? adaptTemplate(detail.original, target, index.sourceVersion, detail.powers) : [], [detail, target, index]);
     const choose = async (summary: TemplateSummary) => {
@@ -49,18 +36,20 @@ export default function TemplatesDialog({ currentModule, onCopy, onClose }: { cu
         catch (error) { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : '模板加载失败'); }
         finally { if (!controller.signal.aborted) setLoading(false); }
     };
-    return <Dialog title="4E 原版只读模板" onCancel={onClose} className="template-dialog">
+    return <Dialog title="资源管理" onCancel={onClose} className="template-dialog">
         <p className="progression-hint">查看原版资料，复制为自己的资源后再修改。原版不随草稿编辑改变；转换提示请在复制前核对。</p>
-        <label className="form-label">导入 4E NEXT 资料包<input type="file" accept=".json,application/json" onChange={event => { void importPack(event.target.files?.[0]); event.target.value = ''; }} /></label>
-        <p className="progression-hint">资料包仅在当前页面内读取，不上传服务器。刷新后需要重新导入；已复制的草稿按现有方式保存。</p>
+        <div className="resource-manager-grid">
+        <ResourceManagerPanel onActivate={activateIndex} authorBytes={authorBytes} />
+        <section className="resource-search-panel manager-card" aria-label="资源搜索">
+        <div className="manager-heading"><h3>⌕ 资源搜索</h3><small>当前包 {index?.entries.length ?? 0} 条</small></div>
         <div className="row template-filters">
             <label>类别<select className="form-control" value={category} onChange={event => { setCategory(event.target.value); setPage(0); }}>
                 <option value="">全部类别</option>{Object.entries(TemplateCategories).map(([value, title]) => <option key={value} value={value}>{title}</option>)}
             </select></label>
-            <label className="col">搜索<input type="search" className="form-control" placeholder="中英文名称、关键词、等级或出处；空格分隔条件" value={query} onChange={event => { setQuery(event.target.value); setPage(0); }} /></label>
+            <label className="col">搜索<input type="search" className="form-control" placeholder="搜索名称、关键词、出处与正文；空格分隔条件" value={query} onChange={event => { setQuery(event.target.value); setPage(0); }} /></label>
         </div>
-        {!index && !error && <p role="status">正在加载模板索引…</p>}
-        {error && <div role="alert" className="feedback feedback-error">{error}<button className="btn" onClick={() => selected && index ? void choose(selected) : setRetry(value => value + 1)}>重试</button></div>}
+        {!index && <p className="empty-state">加载或选择左侧资料包后，即可检索原版模板。</p>}
+        {error && <div role="alert" className="feedback feedback-error">{error}{selected && index && <button className="btn" onClick={() => void choose(selected)}>重试</button>}</div>}
         {index && <div className="template-layout">
             <section className="template-results" aria-label="原版模板列表">
                 <p role="status">找到 {results.length} 条 · 共 {index.entries.length} 条</p>
@@ -84,6 +73,8 @@ export default function TemplatesDialog({ currentModule, onCopy, onClose }: { cu
                 </>}
             </section>
         </div>}
+        </section>
+        </div>
         <div className="dialog-actions"><button className="btn" onClick={onClose}>关闭</button></div>
     </Dialog>;
 }

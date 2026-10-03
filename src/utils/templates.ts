@@ -13,7 +13,7 @@ export interface OriginalEntry {
     wiki?: { transclusions?: string[]; links?: string[] }; provenance?: { contentHash?: string };
     [key: string]: unknown;
 }
-export interface TemplateSummary { id: string; name: string; nameEn: string; category: TemplateCategory; source: string; level: string; keywords: string; file: string; }
+export interface TemplateSummary { id: string; name: string; nameEn: string; category: TemplateCategory; source: string; level: string; keywords: string; file: string; searchText?: string; }
 export interface TemplateIndex { version: 1; dataset: string; sourceVersion: string; entries: TemplateSummary[]; }
 export interface TemplateDraft { module: ModuleType; item: Item; warnings: string[]; }
 const textOf = (value: unknown) => typeof value === 'string' ? value : '';
