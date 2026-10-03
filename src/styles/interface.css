@@ -199,3 +199,9 @@
 .dialog .form-control { border-color: var(--interface-border); border-radius: 6px; min-height: 36px; background: #fff; color: var(--interface-ink); }
 .terminology-workbench .row.term-toolbar { position: sticky; top: -18px; z-index: 2; padding: 10px 0; background: var(--interface-surface); border-bottom: 1px solid var(--interface-border); }
 @media (max-width: 700px) { .terminology-workbench .row.term-toolbar { top: -14px; } }
+
+.template-check-notice .review-link { padding: 2px 7px; min-height: 26px; font-size: 12px; background: transparent; }
+[data-review] { scroll-margin-top: 20px; }
+.template-branch { display: block; font-size: 12px; color: var(--interface-muted); margin-top: 4px; }
+.library-filters { align-items: end; margin: 12px 0; flex-wrap: wrap; }
+.library-filters label { font-size: 12px; }

@@ -61,7 +61,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                 <form onSubmit={e => e.preventDefault()}>
                     <h3 className="editor-section-title">基础信息</h3>
                     <Input label="门派名称" value={d.name} onChange={(v) => update('name', v)} />
-                    <Text label="门派描述 (包含：职能、威能来源、关键属性)" value={d.description} onChange={(v) => update('description', v)} />
+                    <div data-review="description"><Text label="门派描述 (包含：职能、威能来源、关键属性)" value={d.description} onChange={(v) => update('description', v)} /></div>
 
                     <div className="row">
                         <div className="col"><Input label="1级生命值" value={d.hpStart} onChange={(v) => update('hpStart', v)} /></div>
@@ -78,7 +78,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                     <Text label="受训技能" value={d.trainedSkills} onChange={(v) => update('trainedSkills', v)} />
 
                     <h3 className="editor-section-title">门派特技</h3>
-                    <TraitListEditor label="门派特技 (School Features)" value={d.features} onChange={(v) => update('features', v)} />
+                    <div data-review="features"><TraitListEditor label="门派特技 (School Features)" value={d.features} onChange={(v) => update('features', v)} /></div>
                 </form>
             </div>
         );

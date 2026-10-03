@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Config, type ModuleType } from '../constants';
-import { adaptTemplate, originalBody, TemplateCategories, TemplateModules, type OriginalEntry, type TemplateDraft, type TemplateIndex, type TemplateSummary } from '../utils/templates';
+import { adaptTemplate, classFamily, originalBody, TemplateCategories, TemplateModules, type OriginalEntry, type TemplateDraft, type TemplateIndex, type TemplateSummary } from '../utils/templates';
 import { cachedToolPack, templatesForTool } from '../utils/tool-templates';
 import { type PackInfo } from '../utils/template-cache';
 import { importTemplatePack, loadTemplate } from '../utils/template-loader';
@@ -14,6 +14,7 @@ export default function TemplatesDialog({ currentModule, authorBytes, onCopy, on
     const base = import.meta.env.BASE_URL;
     const [index, setIndex] = useState<TemplateIndex | null>(null);
     const [category, setCategory] = useState('');
+    const [family, setFamily] = useState('');
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(0);
     const [selected, setSelected] = useState<TemplateSummary | null>(null);
@@ -30,7 +31,7 @@ export default function TemplatesDialog({ currentModule, authorBytes, onCopy, on
     const openPack = useCallback(async (id?: string) => {
         request.current?.abort();
         const controller = new AbortController(); request.current = controller;
-        setIndex(null); setSelected(null); setDetail(null); setPage(0); setLoading(true); setError('');
+        setIndex(null); setFamily(''); setSelected(null); setDetail(null); setPage(0); setLoading(true); setError('');
         try {
             const cached = await cachedToolPack(id);
             if (controller.signal.aborted) return;
@@ -42,8 +43,8 @@ export default function TemplatesDialog({ currentModule, authorBytes, onCopy, on
     useEffect(() => { if (picker) void openPack(); }, [picker, openPack]);
     const results = useMemo(() => {
         const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-        return (picker ? templatesForTool(index?.entries ?? [], currentModule) : index?.entries)?.filter(entry => (!category || entry.category === category) && words.every(word => `${entry.name} ${entry.nameEn} ${entry.source} ${entry.level} ${entry.keywords}`.toLocaleLowerCase().includes(word) || entry.searchText?.includes(word))) ?? [];
-    }, [index, query, category, picker, currentModule]);
+        return (picker ? templatesForTool(index?.entries ?? [], currentModule) : index?.entries)?.filter(entry => (!category || entry.category === category) && (!picker || currentModule !== 'schools' || !family || classFamily(entry.name) === family) && words.every(word => `${entry.name} ${entry.nameEn} ${entry.source} ${entry.level} ${entry.keywords}`.toLocaleLowerCase().includes(word) || entry.searchText?.includes(word))) ?? [];
+    }, [index, query, category, picker, currentModule, family]);
     const drafts = useMemo(() => detail && index ? adaptTemplate(detail.original, target, index.sourceVersion, detail.powers) : [], [detail, target, index]);
     const choose = async (summary: TemplateSummary) => {
         if (!index) return;
@@ -61,6 +62,7 @@ export default function TemplatesDialog({ currentModule, authorBytes, onCopy, on
         <section className="resource-search-panel manager-card" aria-label="资源搜索">
         <div className="manager-heading"><h3>⌕ 资源搜索</h3><small>当前包 {index?.entries.length ?? 0} 条</small></div>
         <div className="row template-filters">
+            {picker && currentModule === 'schools' && <label>职业体系<select className="form-control" value={family} onChange={event => { setFamily(event.target.value); setPage(0); }}><option value="">全部职业与分支</option>{[...new Set((index?.entries ?? []).filter(entry => entry.category === 'class').map(entry => classFamily(entry.name)))].sort((a, b) => a.localeCompare(b, 'zh-CN')).map(name => <option key={name} value={name}>{name}</option>)}</select></label>}
             {picker && <label>已下载资料包<select className="form-control" value={packId} onChange={event => void openPack(event.target.value)} disabled={!packs.length}>
                 {!packs.length && <option value="">尚无已下载资料</option>}{packs.map(pack => <option key={pack.id} value={pack.id}>{pack.name} · {pack.count} 条</option>)}
             </select></label>}
@@ -77,7 +79,7 @@ export default function TemplatesDialog({ currentModule, authorBytes, onCopy, on
             <section className="template-results" aria-label="原版模板列表">
                 <p role="status">找到 {results.length} 条 · 共 {index.entries.length} 条</p>
                 {results.slice(page * 40, (page + 1) * 40).map(entry => <button type="button" className={`template-result ${selected?.id === entry.id && selected.category === entry.category ? 'active' : ''}`} key={`${entry.category}:${entry.id}`} onClick={() => void choose(entry)}>
-                    <strong>{entry.name}</strong><small>{TemplateCategories[entry.category]} · {entry.source} {entry.level && `· ${entry.level}级`}</small>
+                    <strong>{entry.name}</strong>{entry.category === 'class' && entry.name !== classFamily(entry.name) && <span className="template-branch">{classFamily(entry.name)}的职业分支</span>}<small>{TemplateCategories[entry.category]} · {entry.source} {entry.level && `· ${entry.level}级`}</small>
                 </button>)}
                 {!results.length && <p className="empty-state">{index.entries.length ? '没有匹配模板。' : '请先导入资料包，再检索并复制模板。'}</p>}
                 <div className="toolbar"><button className="btn" disabled={page === 0} onClick={() => setPage(value => value - 1)}>上一页</button><span>{page + 1} / {Math.max(1, Math.ceil(results.length / 40))}</span><button className="btn" disabled={(page + 1) * 40 >= results.length} onClick={() => setPage(value => value + 1)}>下一页</button></div>

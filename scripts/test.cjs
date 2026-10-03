@@ -878,3 +878,52 @@ test('resource list separates batch selection and keeps search through collapse'
         assert.equal(imported, file); assert.equal(target.value, '');
     } finally { React.useState = originalState; termModule.useTerminology = originalTerms; colorModule.useColorLibrary = originalColors; }
 });
+
+
+test('school import splits only explicit features, keeps suboptions, resolves powers and preserves snapshots', () => {
+    const power = { id: 'p', name: '特技威能', category: 'power', usageZh: '遭遇', actionType: '标准动作', range: '近战 1', level: '1', keywords: '武器', details: '<table><tr><th>命中：</th><td>完整伤害规则</td></tr></table>' };
+    const original = { id: 'c', name: '法师（测试分支）', category: 'class', fields: { role: '控制者' }, details: '额外完整资料', sourceText: "职业介绍\n! 测试职业特性\n特性引言\n!! 特性甲\n规则甲。\n!!! 子选项\n子选项完整规则。\n{{特技威能}}\n!! 特性乙\n{{未知引用}}\n! 其他说明\n!! 不应自动拆分的标题\n保留说明。" };
+    const snapshot = JSON.stringify(original);
+    const draft = adaptTemplate(original, 'schools', 'v1', new Map([['特技威能', power]]))[0];
+    assert.equal(draft.item.features.length, 2);
+    assert.equal(draft.item.features[0].name, '特性甲');
+    assert(draft.item.features[0].desc.includes('子选项完整规则'));
+    assert(draft.item.features[0].desc.includes('频率：遭遇'));
+    assert(draft.item.features[0].desc.includes('完整伤害规则'));
+    assert(draft.item.features[1].desc.includes('{{未知引用}}'));
+    assert(draft.item.description.includes('额外完整资料'));
+    assert(draft.item.description.includes('保留说明'));
+    assert(!draft.item.description.includes('规则甲。'));
+    assert(draft.item.sourceText.includes('规则甲。'));
+    assert.equal(draft.item.templateReference.originalJSON, snapshot);
+    assert.equal(JSON.stringify(original), snapshot);
+    assert.deepEqual(normalizeResource('schools', draft.item).features, draft.item.features);
+    assert.deepEqual(readArchive(makeArchive({ schools: [draft.item] })).schools[0].features, draft.item.features);
+    assert.throws(() => adaptTemplate({ ...original, category: 'paragon-path' }, 'schools', 'v1'), /不匹配/);
+    assert.throws(() => adaptTemplate({ ...original, category: 'epic-destiny' }, 'schools', 'v1'), /不匹配/);
+});
+
+test('class growth nodes retain acquisition levels and unstructured classes fall back without losing rules', () => {
+    const original = { id: 'c', name: '法师（剑咏士）', category: 'class', sourceText: '介绍\n!! 1级：本能攻击\n完整规则一\n!!! 特殊限制\n限制原文\n!! 3级：奥术打击\n完整规则二' };
+    const item = adaptTemplate(original, 'schools', 'v1')[0].item;
+    assert.deepEqual(item.features.map(feature => feature.name), ['1级：本能攻击', '3级：奥术打击']);
+    assert(item.features[0].desc.includes('限制原文'));
+    const fallback = adaptTemplate({ ...original, sourceText: '没有可靠章节，所有复杂规则在这里。' }, 'schools', 'v1')[0];
+    assert.equal(fallback.item.features.length, 0);
+    assert.equal(fallback.item.description, '没有可靠章节，所有复杂规则在这里。');
+    assert(fallback.warnings.some(warning => warning.includes('未识别')));
+    const { classFamily } = load('utils/templates.ts');
+    assert.equal(classFamily(original.name), '法师');
+    assert.equal(classFamily('剑法师'), '剑法师');
+    assert.equal(classFamily('混职法师（秘法师）'), '混职法师');
+});
+
+test('conversion review links target explicit fields and safely fall back to the original reference', () => {
+    const { reviewTarget } = load('utils/template-review.ts');
+    assert.equal(reviewTarget('使用频率未能识别，请核对原文。'), 'frequency');
+    assert.equal(reviewTarget('动作含复合说明或非标准用词，保留原文，请核对。'), 'action');
+    assert.equal(reviewTarget('已按原版标题拆分职业特性与等级节点；请核对。'), 'features');
+    assert.equal(reviewTarget('未识别明确的职业特性章节，完整规则保留在门派描述，请核对。'), 'description');
+    assert.equal(reviewTarget('附属招式：动作未能识别'), 'original');
+    assert.equal(reviewTarget('未解析的原版引用：不存在'), 'original');
+});

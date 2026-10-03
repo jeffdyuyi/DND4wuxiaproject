@@ -42,6 +42,34 @@ function rows(entry: OriginalEntry): { title: string; text: string }[] {
 function boldLines(entry: OriginalEntry): Record<string, string> {
     return Object.fromEntries([...field(entry, 'sourceText').matchAll(/''([^'\n]+)[：:]''([^\n]*)/g)].map(match => [match[1], plainText(match[2], entry.fields)]));
 }
+export function classFamily(name: string) { return name.split(/[（(]/)[0].trim(); }
+
+function schoolFeatures(entry: OriginalEntry, powers: ReadonlyMap<string, OriginalEntry>) {
+    const source = field(entry, 'sourceText');
+    const headings = [...source.matchAll(/^(!{1,3})[ \t]+([^\n]+)$/gm)];
+    let inFeatures = false;
+    const features: SchoolItem['features'] = [], spans: [number, number][] = [];
+    for (let i = 0; i < headings.length; i++) {
+        const heading = headings[i];
+        if (heading[1] === '!') { inFeatures = /职业特性/.test(heading[2]); continue; }
+        if (heading[1] !== '!!' || (!inFeatures && !/^\d+级[：:]/.test(heading[2]))) continue;
+        const end = headings.slice(i + 1).find(next => next[1].length <= 2)?.index ?? source.length;
+        const raw = source.slice(heading.index + heading[0].length, end);
+        const resolved = raw.replace(/\{\{([^{}]+)\}\}/g, (match, ref: string) => {
+            const power = powers.get(ref);
+            if (!power) return match;
+            const meta = [['等级', 'level'], ['频率', 'usageZh'], ['动作', 'actionType'], ['范围', 'range'], ['关键词', 'keywords']].map(([label, key]) => field(power, key, key === 'usageZh' ? 'usage' : key) ? label + '：' + plainText(field(power, key, key === 'usageZh' ? 'usage' : key)) : '').filter(Boolean);
+            return [power.name, ...meta, originalBody(power)].join('\n');
+        });
+        const desc = plainText(resolved, entry.fields);
+        if (!desc) continue;
+        features.push({ id: crypto.randomUUID(), name: plainText(heading[2]), desc });
+        spans.push([heading.index, end]);
+    }
+    let remaining = source;
+    for (const [start, end] of spans.reverse()) remaining = remaining.slice(0, start) + remaining.slice(end);
+    return { features, description: plainText(remaining, { ...entry.fields, title: entry.name }) };
+}
 function base(entry: OriginalEntry, module: ModuleType, sourceVersion: string): Item {
     return { ...createResource(module), name: entry.name, flavor: field(entry, 'flavorText'), source: field(entry, 'source'), sourceText: originalBody(entry),
         templateReference: { entryId: entry.id, category: entry.category, sourceVersion, schemaVersion: entry.schemaVersion ?? 1, contentHash: entry.provenance?.contentHash ?? '', originalJSON: JSON.stringify(entry) } };
@@ -114,9 +142,11 @@ export function adaptTemplate(entry: OriginalEntry, module: ModuleType, sourceVe
         const feat = item as GeneralItem; feat.req = plainText(field(entry, 'prerequisite')); feat.tier = field(entry, 'tierZh') || entry.fields?.tier || '';
         feat.benefit = plainText(field(entry, 'benefit'), entry.fields) || body;
     } else if (module === 'schools') {
-        const school = item as SchoolItem; school.description = body; school.armorProf = lines['防具擅长'] ?? ''; school.weaponProf = lines['武器擅长'] ?? ''; school.defBonus = lines['防御加值'] ?? '';
+        const school = item as SchoolItem; const parsed = schoolFeatures(entry, powers); school.description = parsed.features.length ? [field(entry, 'flavorText'), field(entry, 'details'), parsed.description, field(entry, 'benefit')].filter(Boolean).map(text => plainText(text, entry.fields)).join('\n\n') : body; school.armorProf = lines['防具擅长'] ?? ''; school.weaponProf = lines['武器擅长'] ?? ''; school.defBonus = lines['防御加值'] ?? '';
         school.hpStart = lines['起始HP'] ?? ''; school.hpPerLvl = lines['每级增加HP'] ?? ''; school.surges = lines['每日回复力'] ?? ''; school.trainedSkills = [lines['受训技能'], lines['职业技能']].filter(Boolean).join('\n');
-        school.features = []; warnings.push('职业概要已转换；职业特性及变体保留在说明，需人工整理为门派特技。');
+        school.features = parsed.features;
+        if (!parsed.features.length) warnings.push('未识别明确的职业特性章节，完整规则保留在门派描述，请核对。');
+        else warnings.push('已按原版标题拆分职业特性与等级节点；请核对门派特技中的子选项和获得等级。');
     } else if (module === 'roots') {
         const root = item as RootItem; root.attributes = lines['属性调整'] ?? [field(entry, 'abilityOne', 'race-abilityone'), field(entry, 'abilityTwo', 'race-abilitytwo')].filter(Boolean).map(ability => `+2${ability}`).join('；');
         root.size = field(entry, 'size', 'race-size'); root.speed = field(entry, 'speed', 'race-speed'); root.vision = field(entry, 'vision', 'race-vision'); root.flavor = body;
