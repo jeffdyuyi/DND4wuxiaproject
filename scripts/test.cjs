@@ -20,6 +20,48 @@ const { RichText } = load('components/RichText.tsx');
 const { PowerCard } = load('components/PowerCard.tsx');
 const { CardContent } = load('components/Preview.tsx');
 const { defaultHeaderColor, resolveHeaderColor, headerTextColor, TYPE_HEADER_COLORS } = load('utils/card-colors.ts');
+const { COLOR_LIBRARY_KEY, loadColorLibrary, saveColorLibrary, upsertColor, applyColorToItems } = load('utils/color-library.ts');
+
+test('named palettes persist, deduplicate by color and preserve corrupt or unwritable data', () => {
+    const bytes = new Map();
+    bytes.set(STORAGE_KEY, 'existing card data');
+    const storage = { getItem: key => bytes.get(key) ?? null, setItem: (key, value) => bytes.set(key, value) };
+    assert.deepEqual(loadColorLibrary(storage).colors, []);
+    const initial = upsertColor([], '  竹影  ', '#123abc');
+    assert.equal(initial[0].name, '竹影'); assert.equal(initial[0].color, '#123ABC');
+    const renamed = upsertColor(initial, '深竹影', '#123ABC');
+    assert.equal(renamed.length, 1); assert.equal(renamed[0].id, initial[0].id);
+    assert.equal(initial[0].name, '竹影', 'updates do not mutate previous palettes');
+    assert.equal(saveColorLibrary(storage, renamed).ok, true);
+    assert.equal(bytes.get(STORAGE_KEY), 'existing card data', 'saving a palette never submits card drafts or rewrites the resource archive');
+    assert.deepEqual(loadColorLibrary(storage).colors, renamed);
+    const saved = bytes.get(COLOR_LIBRARY_KEY);
+    const denied = { ...storage, setItem: () => { throw new Error('quota'); } };
+    assert.equal(saveColorLibrary(denied, upsertColor(renamed, '新配色', '#987654')).ok, false);
+    assert.equal(bytes.get(COLOR_LIBRARY_KEY), saved);
+    for (const raw of ['{broken', JSON.stringify({ schemaVersion: 99, colors: [] }), JSON.stringify({ schemaVersion: 1, colors: [{ id: 'x', name: '坏配色', color: 'red' }] })]) {
+        bytes.set(COLOR_LIBRARY_KEY, raw);
+        const loaded = loadColorLibrary(storage);
+        assert(loaded.error); assert.equal(loaded.raw, raw); assert.equal(bytes.get(COLOR_LIBRARY_KEY), raw);
+    }
+    assert.throws(() => upsertColor([], ' ', '#123456'));
+    assert.throws(() => upsertColor([], '无效', 'red'));
+});
+
+test('batch colors touch only selected resources and explicitly included embedded powers', () => {
+    const parent = createResource('traditions'); parent.headerColor = '#010101'; parent.powers[0].headerColor = '#020202';
+    const other = createResource('traditions');
+    const snapshot = structuredClone(parent);
+    const result = applyColorToItems([parent, other], [parent.id, 'missing'], '#123abc');
+    assert.equal(result[0].headerColor, '#123ABC'); assert.equal(result[1], other);
+    assert.equal(result[0].powers, parent.powers, 'parent-only operation keeps embedded powers');
+    assert.deepEqual(parent, snapshot);
+    const both = applyColorToItems([parent], [parent.id], '#456789', true)[0];
+    assert.equal(both.powers[0].headerColor, '#456789'); assert.equal(parent.powers[0].headerColor, '#020202');
+    const defaults = applyColorToItems([both], [parent.id], undefined, true)[0];
+    assert.equal(defaults.headerColor, undefined); assert.equal(defaults.powers[0].headerColor, undefined);
+    assert.throws(() => applyColorToItems([parent], [parent.id], 'url(x)'));
+});
 
 test('header colors use PHB frequency and item baselines; custom colors only affect title bands', () => {
     for (const [type, color] of Object.entries({ basic: '#2AA738', special: '#D0121B', ultimate: '#776C66' })) {
@@ -441,6 +483,11 @@ test('editing keeps saved cards intact until overwrite, copy or named save-as is
         let tree = render(); find(tree, element => element.type === Sidebar).props.onSwitchModule('moves'); tree = render();
         find(tree, element => element.type === Editor).props.onChange({ ...original, name: '新风味' }); tree = render();
         assert.equal(db.moves[0].name, '原卡');
+        const { ListPanel } = load('components/ListPanel.tsx');
+        const draftList = find(tree, element => element.type === ListPanel);
+        assert.equal(draftList.props.colorBlocked, true);
+        draftList.props.onApplyColor([original.id], '#112233', false);
+        assert.equal(db.moves[0].headerColor, undefined, 'batch application must not overwrite or save an active draft');
         button(tree, '复制保存').props.onClick(); tree = render();
         assert.equal(db.moves.length, 2); assert.equal(db.moves.find(item => item.id === original.id).name, '原卡');
         const copy = db.moves[0]; assert.notEqual(copy.id, original.id);
@@ -451,6 +498,10 @@ test('editing keeps saved cards intact until overwrite, copy or named save-as is
         const saved = db.moves[0]; find(tree, element => element.type === Editor).props.onChange({ ...saved, name: '覆盖后的名字' }); tree = render();
         button(tree, '覆盖保存').props.onClick(); tree = render();
         assert.equal(db.moves.length, 3); assert.equal(db.moves.find(item => item.id === saved.id).name, '覆盖后的名字');
+        const savedList = find(tree, element => element.type === ListPanel);
+        assert.equal(savedList.props.colorBlocked, false);
+        savedList.props.onApplyColor([saved.id], '#112233', false); tree = render();
+        assert.equal(db.moves.find(item => item.id === saved.id).headerColor, '#112233');
         find(tree, element => element.type === Editor).props.onChange({ ...db.moves[0], name: '不应偷偷保存' }); tree = render();
         find(tree, element => element.type === Sidebar).props.onSwitchModule('paths'); tree = render();
         assert.equal(find(tree, element => element.type === Editor).props.module, 'moves');

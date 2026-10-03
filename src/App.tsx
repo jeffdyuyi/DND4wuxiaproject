@@ -5,6 +5,8 @@ import { ListPanel } from './components/ListPanel';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
 import { EditorWorkbench } from './components/EditorWorkbench';
+import { ColorLibraryProvider } from './components/ColorLibraryProvider';
+import { applyColorToItems } from './utils/color-library';
 import { HomePage } from './components/HomePage';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -64,6 +66,14 @@ function App() {
   const selectModule = (mod: ModuleType, id?: string) => navigate({ kind: 'module', module: mod, id });
   const createNew = () => navigate({ kind: 'create' });
   const updateItem = (item: Item) => setDraft(JSON.stringify(item) === JSON.stringify(db[module].find(original => original.id === item.id)) ? null : { module, item });
+  const applyBatchColor = (ids: string[], color: string | undefined, includePowers: boolean) => {
+    if (draft || library.blocked || packing) return;
+    const count = db[module].filter(item => ids.includes(item.id)).length;
+    if (!count) return;
+    const applyPowers = includePowers && (module === 'traditions' || module === 'paths');
+    library.update(withItems(db, module, applyColorToItems(db[module], ids, color, applyPowers)));
+    setNotice(`已更新选中 ${count} 张卡片的标题配色${applyPowers ? '及其附属威能' : ''}。保存结果见上方状态。`);
+  };
   const saveCard = (copy = false, name?: string): DB => {
     const original = draft?.item ?? db[module].find(item => item.id === currentItemId);
     if (!original) return db;
@@ -122,7 +132,7 @@ function App() {
     setNotice(`已复制 ${drafts.length} 条 4E 草稿。原版保持只读；请查看编辑器中的“4E 原版对照”和转换提示。`);
   };
 
-  return <TerminologyContext.Provider value={{ terminology: library.terminology, update: library.updateTerminology, collect: library.collect }}><div className="app-container" onKeyDownCapture={event => {
+  return <ColorLibraryProvider><TerminologyContext.Provider value={{ terminology: library.terminology, update: library.updateTerminology, collect: library.collect }}><div className="app-container" onKeyDownCapture={event => {
     if (viewMode === 'tool' && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
       event.preventDefault();
       if (currentItemId && !library.blocked && !pendingNavigation && !saveAs && !showTerms && !showTemplates && !showCards && !showDisclaimer && !confirmation && !incoming) saveCard();
@@ -170,13 +180,13 @@ function App() {
         {viewMode === 'home' ? <HomePage db={db} onNavigate={selectModule} searchTerm={homeSearch} onSearch={setHomeSearch} /> : <>
           <ListPanel key={`list:${module}`} items={workingDB[module]} currentItemId={currentItemId} onSelect={id => selectModule(module, id)}
             onCreate={createNew} onDelete={id => setConfirmation({ kind: 'delete', module, id })}
-            onDuplicate={duplicateItem} onExportItems={exportItems} onBundle={(ids, images) => void bundle(ids, images)} busy={packing} />
+            onDuplicate={duplicateItem} onExportItems={exportItems} onBundle={(ids, images) => void bundle(ids, images)} busy={packing} onApplyColor={applyBatchColor} colorBlocked={!!draft || library.blocked} />
           <EditorWorkbench key={`workbench:${module}:${currentItemId ?? 'empty'}`} resourceId={`${module}:${currentItemId ?? 'empty'}`}
             editor={<Editor module={module} item={currentItem} onChange={updateItem} />}
             preview={<Preview module={module} item={currentItem} />} />
         </>}
       </main>
     </div>
-  </div></TerminologyContext.Provider>;
+  </div></TerminologyContext.Provider></ColorLibraryProvider>;
 }
 export default App;

@@ -1,15 +1,24 @@
 import { useState } from 'react';
 import type { Item } from '../types';
 import { resourceSearchText } from '../utils/resources';
+import { BUILTIN_COLORS } from '../utils/color-library';
+import { useColorLibrary } from '../hooks/ColorLibraryContext';
 interface ListPanelProps {
     items: Item[]; currentItemId: string | null; onSelect: (id: string) => void;
     onCreate: () => void; onDelete: (id: string) => void;
     onDuplicate: (id: string) => void; onExportItems: (ids: string[]) => void;
     onBundle: (ids: string[], images: boolean) => void; busy: boolean;
+    onApplyColor: (ids: string[], color: string | undefined, includePowers: boolean) => void;
+    colorBlocked: boolean;
 }
-export function ListPanel({ items, currentItemId, onSelect, onCreate, onDelete, onDuplicate, onExportItems, onBundle, busy }: ListPanelProps) {
+export function ListPanel({ items, currentItemId, onSelect, onCreate, onDelete, onDuplicate, onExportItems, onBundle, busy, onApplyColor, colorBlocked }: ListPanelProps) {
     const [filter, setFilter] = useState('');
     const [selected, setSelected] = useState<string[]>([]);
+    const [batchColor, setBatchColor] = useState('');
+    const [includePowers, setIncludePowers] = useState(false);
+    const library = useColorLibrary();
+    const palettes = [...BUILTIN_COLORS, ...library.colors];
+    const chosenColor = batchColor === 'default' || palettes.some(entry => entry.color === batchColor) ? batchColor : '';
     const filteredItems = items.filter(item => resourceSearchText(item).includes(filter.trim().toLocaleLowerCase()));
     const selectedIds = selected.filter(id => items.some(item => item.id === id));
     return <aside className="list-panel" aria-label="资源列表">
@@ -18,7 +27,13 @@ export function ListPanel({ items, currentItemId, onSelect, onCreate, onDelete, 
                 <button className="btn" disabled={!selectedIds.length} onClick={() => onExportItems(selectedIds)}>导出选中 ({selectedIds.length})</button></div>
             <div className="resource-search"><input className="form-control" type="search" aria-label="搜索当前资源库" placeholder="搜索名称或规则内容…" value={filter} onChange={event => setFilter(event.target.value)} />{filter && <button className="btn" onClick={() => setFilter('')}>清除</button>}</div>
             <p className="list-count" role="status">{filter.trim() ? `匹配 ${filteredItems.length} / ${items.length} 条` : `共 ${items.length} 条资源`}{selectedIds.length ? ` · 已选 ${selectedIds.length} 条` : ''}</p>
-            <details className="list-batch"><summary>批量选择与打包</summary><div className="toolbar"><button className="btn" onClick={() => setSelected([...new Set([...selectedIds, ...filteredItems.map(item => item.id)])])}>选择搜索结果</button><button className="btn" onClick={() => setSelected([])}>清空选择</button></div>
+            <details className="list-batch"><summary>批量选择、配色与打包</summary><div className="toolbar"><button className="btn" onClick={() => setSelected([...new Set([...selectedIds, ...filteredItems.map(item => item.id)])])}>选择搜索结果</button><button className="btn" onClick={() => setSelected([])}>清空选择</button></div>
+            <div className="batch-color"><label>标题配色 <select aria-label="选中卡片的标题配色" value={chosenColor} onChange={event => setBatchColor(event.target.value)}><option value="">选择配色</option><option value="default">恢复类型默认色</option><optgroup label="内置配色">{BUILTIN_COLORS.map(entry => <option key={entry.id} value={entry.color}>{entry.name}</option>)}</optgroup><optgroup label="我的配色">{library.colors.map(entry => <option key={entry.id} value={entry.color}>{entry.name}</option>)}</optgroup></select></label>
+                {chosenColor && chosenColor !== 'default' && <span className="header-color-swatch" style={{ backgroundColor: chosenColor }} aria-hidden="true" />}
+                {items.some(item => Array.isArray(item.powers)) && <label><input type="checkbox" checked={includePowers} onChange={event => setIncludePowers(event.target.checked)} />同时应用到附属威能</label>}
+                <button type="button" className="btn" disabled={busy || colorBlocked || !selectedIds.length || !chosenColor} onClick={() => onApplyColor(selectedIds, chosenColor === 'default' ? undefined : chosenColor, includePowers)}>应用到选中 {selectedIds.length} 张</button>
+                <small>{colorBlocked ? '请先保存或放弃当前草稿，再批量配色。' : '覆盖选中卡片的标题色带并保存，正文保持不变。'}</small>
+            </div>
             <div className="toolbar"><button className="btn" disabled={busy || !selectedIds.length} onClick={() => onBundle(selectedIds, false)}>打包 JSON</button><button className="btn" disabled={busy || !selectedIds.length} onClick={() => onBundle(selectedIds, true)}>打包 PNG＋JSON</button></div>
             </details>
         </div>
