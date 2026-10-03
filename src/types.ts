@@ -4,6 +4,7 @@
 export interface BaseItem {
     id: string;
     name: string;
+    headerColor?: string;
     flavor?: string;
     source?: string;
     sourceText?: string;

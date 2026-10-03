@@ -1,3 +1,5 @@
+import { HeaderColorEditor } from './HeaderColorEditor';
+import { CardHeader } from './CardHeader';
 import { newPower } from '../utils/progression';
 import { moveEntry } from '../utils/reorder';
 import type { ProgressionItem } from '../types';
@@ -15,7 +17,7 @@ export function ProgressionEditor({ module, item, onChange }: {
     const update = <K extends keyof ProgressionItem>(key: K, value: ProgressionItem[K]) => onChange({ ...item, [key]: value });
     const features = item.features ?? [], powers = item.powers ?? [];
     return <div className="editor-panel">
-        <TemplateReference item={item} />
+        <TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={next => onChange(next as ProgressionItem)} />
         <Input label={`${titleOf(module)}名称`} value={item.name} onChange={value => update('name', value)} />
         <Text label="引言 / 意境" value={item.flavor} onChange={value => update('flavor', value)} />
         <Input label="起始等级" value={item.entryLevel} onChange={value => update('entryLevel', value)} />
@@ -57,8 +59,8 @@ export function ProgressionCard({ module, item, summaryOnly = false }: { module:
     const features = (item.features ?? []).filter(f => f.name || f.desc);
     const powers = (item.powers ?? []).filter(p => p.name || p.flavor || p.hit || p.miss || p.effect || p.special || p.rules?.some(rule => rule.title || rule.text));
     return <div className="wuxia-card progression-card">
-        <div className={`card-header ${module === 'traditions' ? 'bg-green' : 'bg-gold'}`}><span className="card-title">{item.name}</span>
-            <span className="card-meta">{titleOf(module)}{item.entryLevel && <><br />{item.entryLevel}级起</>}</span></div>
+        <CardHeader module={module} item={item}><span className="card-title">{item.name}</span>
+            <span className="card-meta">{titleOf(module)}{item.entryLevel && <><br />{item.entryLevel}级起</>}</span></CardHeader>
         {item.flavor && <div className="flavor"><RichText text={item.flavor} /></div>}
         {item.req && <div className="stat-row"><span><strong>前提条件：</strong><RichText text={item.req} /></span></div>}
         {item.description && <div className="progression-body"><RichText text={item.description} /></div>}

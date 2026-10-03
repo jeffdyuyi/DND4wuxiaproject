@@ -18,6 +18,50 @@ const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { RichText } = load('components/RichText.tsx');
 const { PowerCard } = load('components/PowerCard.tsx');
+const { CardContent } = load('components/Preview.tsx');
+const { defaultHeaderColor, resolveHeaderColor, headerTextColor, TYPE_HEADER_COLORS } = load('utils/card-colors.ts');
+
+test('header colors use PHB frequency and item baselines; custom colors only affect title bands', () => {
+    for (const [type, color] of Object.entries({ basic: '#2AA738', special: '#D0121B', ultimate: '#776C66' })) {
+        const move = { ...createResource('moves'), type };
+        assert.equal(defaultHeaderColor('moves', move), color);
+        const markup = renderToStaticMarkup(React.createElement(PowerCard, { item: move }));
+        assert(markup.includes(`background-color:${color}`));
+    }
+    assert.equal(TYPE_HEADER_COLORS.items, '#F39700');
+    assert.equal(headerTextColor('#FFFFFF'), '#1A1A1A');
+    assert.equal(headerTextColor('#000000'), '#FFFFFF');
+    for (const module of Object.keys(TYPE_HEADER_COLORS)) {
+        const item = { ...createResource(module), headerColor: '#123abc' };
+        assert.equal(resolveHeaderColor(module, item), '#123ABC');
+        const markup = renderToStaticMarkup(React.createElement(CardContent, { module, item }));
+        assert(markup.includes('class="card-header" style="background-color:#123ABC;'), module);
+        assert(!markup.includes('class="flavor" style="background-color:#123ABC'), 'body backgrounds remain unchanged');
+    }
+});
+
+test('header overrides round-trip, reset to frequency defaults and remain independent for embedded powers', () => {
+    const { cardArchive } = load('utils/card-image.ts');
+    const item = createResource('traditions'); item.headerColor = '#abcdef';
+    item.powers[0].headerColor = '#112233'; item.powers[0].name = '附属招式';
+    const archive = readArchive(JSON.parse(JSON.stringify(makeArchive({ traditions: [item] }))));
+    const restored = archive.traditions[0];
+    assert.equal(restored.headerColor, '#ABCDEF');
+    assert.equal(restored.powers[0].headerColor, '#112233');
+    assert.equal(duplicateResource(restored).headerColor, '#ABCDEF');
+    const markup = renderToStaticMarkup(React.createElement(ProgressionCard, { module: 'traditions', item: restored }));
+    assert(markup.includes('background-color:#ABCDEF'));
+    assert(markup.includes('background-color:#112233'));
+    assert.equal(readArchive(cardArchive('traditions', restored, `power:${restored.powers[0].id}`)).moves[0].headerColor, '#112233');
+    for (const invalid of ['', '#FFF', 'red', '#12345G', 'url(x)', 123, null]) {
+        assert.throws(() => normalizeResource('moves', { ...createResource('moves'), headerColor: invalid }), /headerColor/);
+    }
+    const move = { ...createResource('moves'), headerColor: '#112233', type: 'ultimate' };
+    assert.equal(resolveHeaderColor('moves', move), '#112233');
+    delete move.headerColor;
+    assert.equal(resolveHeaderColor('moves', move), '#776C66');
+    assert.equal(normalizeResource('moves', createResource('moves')).headerColor, undefined);
+});
 const { ProgressionCard } = load('components/Progression.tsx');
 const { defaultTerminology, validateTerminology, addTerms, mergeTerminology } = load('utils/terminology.ts');
 const { readLibraryArchive } = load('utils/archive.ts');
@@ -182,7 +226,7 @@ test('editable PNGs preserve Unicode, nested data and unknown fields; corrupt or
     const { embedCardPNG, readCardPNG, crc32 } = load('utils/card-png.ts');
     assert.equal(crc32(new TextEncoder().encode('123456789')), 0xcbf43926);
     const png = testPNG();
-    const item = createResource('traditions'); item.name = '踏雪 · 中文'; item.custom = { text: '保留未知字段' };
+    const item = createResource('traditions'); item.name = '踏雪 · 中文'; item.custom = { text: '保留未知字段' }; item.headerColor = '#123ABC'; item.powers[0].headerColor = '#456DEF';
     const archive = makeArchive({ traditions: [item] });
     const encoded = embedCardPNG(png, archive);
     assert.deepEqual(readCardPNG(encoded), archive);
@@ -197,12 +241,13 @@ test('editable PNGs preserve Unicode, nested data and unknown fields; corrupt or
 
 test('card ZIP imports deduplicate image and JSON pairs and reject ambiguous IDs and excessive entries', () => {
     const { readCardBytes, packFiles } = load('utils/card-files.ts');
-    const item = createResource('moves'); item.name = '测试单卡';
+    const item = createResource('moves'); item.name = '测试单卡'; item.headerColor = '#123ABC';
     const archive = makeArchive({ moves: [item] });
     const encode = value => new TextEncoder().encode(JSON.stringify(value));
     const { embedCardPNG } = load('utils/card-png.ts');
     const zip = packFiles({ 'one.json': encode(archive), 'same-card.png': embedCardPNG(testPNG(), archive), 'duplicate.json': encode(archive), 'README.txt': encode('说明') });
     const result = readCardBytes(zip, 'cards.zip'); assert.equal(result.data.moves.length, 1);
+    assert.equal(result.data.moves[0].headerColor, '#123ABC');
     const second = makeArchive({ moves: [{ ...item, name: '不同的内容' }] });
     assert.throws(() => readCardBytes(packFiles({ 'one.json': encode(archive), 'two.json': encode(second) }), 'cards.zip'), /数据不同/);
     assert.throws(() => readCardBytes(packFiles(Object.fromEntries(Array.from({ length: 501 }, (_, index) => [`${index}.json`, encode(archive)]))), 'many.zip'), /500/);

@@ -2,6 +2,7 @@ import type { DB, Item, MoveItem } from '../types';
 import { Config, type ModuleType } from '../constants';
 import { createResource, duplicateResource, emptyDB, modules, withItems } from './resources';
 import { validateTerminology, type Terminology } from './terminology';
+import { isHeaderColor } from './card-colors';
 
 export const SCHEMA_VERSION = 1;
 export type ImportMode = 'skip' | 'overwrite' | 'copy';
@@ -43,6 +44,10 @@ export function normalizeResource(module: ModuleType, value: unknown, path: stri
     textFields(raw, ['id', 'name', 'flavor', 'source', 'sourceText', 'actionLabel', 'defLabel', 'typeLabel'], path);
     if (typeof raw.name !== 'string') throw new Error(`${path}.name 缺失`);
     const data = { ...raw };
+    if (data.headerColor !== undefined) {
+        if (!isHeaderColor(data.headerColor)) throw new Error(`${path}.headerColor 必须是 #RRGGBB 格式的颜色`);
+        data.headerColor = data.headerColor.toUpperCase();
+    }
     if ((module === 'traditions' || module === 'paths') && typeof data.entryLevel === 'number') data.entryLevel = String(data.entryLevel);
     textFields(data, stringKeys[module], path);
     if (module === 'moves' || module === 'items') {

@@ -1,3 +1,4 @@
+import { HeaderColorEditor } from './HeaderColorEditor';
 import type { MoveItem } from '../types';
 import { Input, Text, KeywordSelector, RangeBuilder, AttackBuilder } from './FormHelpers';
 import { TermSelect, RuleText } from './TermControls';
@@ -7,6 +8,7 @@ export function PowerEditor({ item, onChange, embedded = false }: { item: MoveIt
     const update = <K extends keyof MoveItem>(key: K, value: MoveItem[K]) => onChange({ ...item, [key]: value });
     const rules = item.rules ?? [];
     return <>
+        <HeaderColorEditor module="moves" item={item} onChange={next => onChange(next as MoveItem)} />
         <Input label="招式 / 威能名称" value={item.name} onChange={value => update('name', value)} />
         <div className="row">
             <div className="col"><Input label="威能等级" value={item.level} onChange={value => { if (/^\d*$/.test(value)) update('level', Number(value)); }} /></div>

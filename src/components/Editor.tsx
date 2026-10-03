@@ -1,3 +1,4 @@
+import { HeaderColorEditor } from './HeaderColorEditor';
 
 import React from 'react';
 import type { ModuleType } from '../constants';
@@ -31,7 +32,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
     } else if (module === 'items') {
         const d = item as EquipmentItem;
         return (
-            <div className="editor-panel"><TemplateReference item={item} />
+            <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
                     <div className="row">
                         <div className="col"><Input label="宝物名称" value={d.name} onChange={(v) => update('name', v)} /></div>
@@ -53,7 +54,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
     } else if (module === 'schools') {
         const d = item as SchoolItem;
         return (
-            <div className="editor-panel"><TemplateReference item={item} />
+            <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
                     <Input label="门派名称" value={d.name} onChange={(v) => update('name', v)} />
                     <Text label="门派描述 (包含：职能、威能来源、关键属性)" value={d.description} onChange={(v) => update('description', v)} />
@@ -79,7 +80,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
     } else if (module === 'roots') {
         const d = item as RootItem;
         return (
-            <div className="editor-panel"><TemplateReference item={item} />
+            <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
                     <Input label="根骨名称" value={d.name} onChange={(v) => update('name', v)} />
                     <Input label="属性加成" value={d.attributes} onChange={(v) => update('attributes', v)} />
@@ -95,7 +96,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
     } else if (module === 'origins') {
         const d = item as OriginItem;
         return (
-            <div className="editor-panel"><TemplateReference item={item} />
+            <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
                     <Input label="出身名称" value={d.name} onChange={(v) => update('name', v)} />
                     <div className="row">
@@ -111,7 +112,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
         // Racial Power replacement
         const d = item as DestinyItem;
         return (
-            <div className="editor-panel"><TemplateReference item={item} />
+            <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
                     <Input label="威能名称" value={d.name} onChange={(v) => update('name', v)} />
                     <Text label="描述" value={d.flavor} onChange={(v) => update('flavor', v)} />
@@ -134,7 +135,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
         const d = item as GeneralItem;
         const lbl = '造诣';
         return (
-            <div className="editor-panel"><TemplateReference item={item} />
+            <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
                     <Input label={lbl + '名称'} value={d.name} onChange={(v) => update('name', v)} />
                     <Input label="修炼门槛" value={d.req} onChange={(v) => update('req', v)} />

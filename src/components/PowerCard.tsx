@@ -1,14 +1,14 @@
+import { CardHeader } from './CardHeader';
 import type { MoveItem } from '../types';
 import { ActionMap, Defenses, UsageOptions } from '../constants';
 import { RichText } from './RichText';
 
 export function PowerCard({ item, embedded = false }: { item: MoveItem; embedded?: boolean }) {
-    const color = item.type === 'basic' ? 'bg-green' : item.type === 'special' ? 'bg-red' : 'bg-black';
     const action = ActionMap[item.action as keyof typeof ActionMap];
     const frequency = item.typeLabel ?? UsageOptions.find(option => option.v === item.type)?.t ?? item.type;
     return <div className={embedded ? 'progression-power' : 'wuxia-card'}>
-        <div className={`card-header ${color}`}><span className={embedded ? '' : 'card-title'}>{item.name || '未命名威能'}</span>
-            <span className="card-meta">{!embedded && item.cls && `${item.cls} · `}{frequency} {item.level}级{embedded && item.acquiredLevel && item.acquiredLevel !== String(item.level) && <><br />{item.acquiredLevel}级获得</>}</span></div>
+        <CardHeader module={'moves'} item={item}><span className={embedded ? '' : 'card-title'}>{item.name || '未命名威能'}</span>
+            <span className="card-meta">{!embedded && item.cls && `${item.cls} · `}{frequency} {item.level}级{embedded && item.acquiredLevel && item.acquiredLevel !== String(item.level) && <><br />{item.acquiredLevel}级获得</>}</span></CardHeader>
         {item.flavor && <div className="flavor"><RichText text={item.flavor} /></div>}
         {item.keywords && <div className="stat-row"><span><strong>关键词：</strong>{item.keywords}</span></div>}
         {(item.action || item.range) && <div className="stat-row"><span><span className={`act-badge ${action?.c ?? 'act-free'}`}>{item.actionLabel ?? action?.t ?? item.action}</span>{item.range}</span></div>}

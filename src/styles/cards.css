@@ -15,6 +15,7 @@
     box-sizing: border-box;
 }
 .card-header { padding: 4px 10px; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; }
+.card-header .card-title { text-shadow: var(--card-title-shadow, 1px 1px 0 rgba(0,0,0,0.5)); }
 .bg-green { background-color: var(--c-atwill); }
 .bg-red { background-color: var(--c-encounter); }
 .bg-black { background-color: var(--c-daily); }

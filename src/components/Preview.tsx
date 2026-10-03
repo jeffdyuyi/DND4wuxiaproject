@@ -1,3 +1,4 @@
+import { CardHeader } from './CardHeader';
 
 import React, { useEffect, useRef, useState } from 'react';
 import { RichText } from './RichText';
@@ -102,10 +103,10 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
         const d = item as EquipmentItem;
         content = (
             <div className="wuxia-card">
-                <div className="card-header bg-gold">
+                <CardHeader module={module} item={item}>
                     <span className="card-title">{d.name}</span>
                     <span className="card-meta">等级 {d.level}</span>
-                </div>
+                </CardHeader>
                 <div className="flavor">{d.flavor}</div>
                 <div className="stat-row" style={{ justifyContent: 'space-between' }}>
                     <span>{d.slot}</span><span>{d.price}</span>
@@ -126,10 +127,10 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
         const d = item as SchoolItem;
         content = (
             <div className="wuxia-card">
-                <div className="card-header bg-red">
+                <CardHeader module={module} item={item}>
                     <span className="card-title">{d.name}</span>
                     <span className="card-meta">武林门派</span>
-                </div>
+                </CardHeader>
                 <div className="flavor" style={{ borderBottom: '1px solid #ccc', paddingBottom: '8px', marginBottom: '8px' }}>
                     {md(d.description)}
                 </div>
@@ -174,10 +175,10 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
         const d = item as RootItem;
         content = (
             <div className="wuxia-card">
-                <div className="card-header bg-gray">
+                <CardHeader module={module} item={item}>
                     <span className="card-title">{d.name}</span>
                     <span className="card-meta">根骨天赋</span>
-                </div>
+                </CardHeader>
                 {/* Image 1 layout approximation */}
                 <div style={{ padding: '10px', background: '#eaeaea', borderRadius: '4px', marginBottom: '10px', fontSize: '14px' }}>
                     {d.attributes && <div><strong>属性值：</strong> {d.attributes}</div>}
@@ -192,10 +193,10 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
         const d = item as OriginItem;
         content = (
             <div className="wuxia-card">
-                <div className="card-header bg-gray">
+                <CardHeader module={module} item={item}>
                     <span className="card-title">{d.name}</span>
                     <span className="card-meta">江湖出身</span>
-                </div>
+                </CardHeader>
                 <div className="flavor">{d.flavor}</div>
 
                 <div className="stat-row"><span><span className="label">语言：</span>{d.languages}</span></div>
@@ -215,16 +216,15 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
         );
     } else if (module === 'destinies') {
         const d = item as DestinyItem;
-        const headerClass = (d.powerType?.includes('遭遇') || d.powerType?.includes('Encounter')) ? 'bg-red' : 'bg-gray';
 
         const action = ActionMap[d.action as keyof typeof ActionMap] || { t: d.action || '', c: '' };
 
         content = (
             <div className="wuxia-card">
-                <div className={`card-header ${headerClass}`}>
+                <CardHeader module={module} item={item}>
                     <span className="card-title">{d.name}</span>
                     <span className="card-meta">先天命格 / {d.powerType || '特殊'}</span>
-                </div>
+                </CardHeader>
                 <div className="flavor">{d.flavor}</div>
                 <div className="stat-row">
                     <span>
@@ -239,16 +239,15 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
 
     } else {
         const d = item as GeneralItem;
-        const color = module === 'feats' ? 'bg-gray' : 'bg-green';
         let meta = Config[module].title.slice(0, 4);
         if (module === 'feats') meta = d.tier || '';
 
         content = (
             <div className="wuxia-card">
-                <div className={`card-header ${color}`}>
+                <CardHeader module={module} item={item}>
                     <span className="card-title">{d.name}</span>
                     <span className="card-meta">{meta}</span>
-                </div>
+                </CardHeader>
                 <div className="flavor">{d.flavor}</div>
                 {d.stats && <div className="stat-row"><span><span className="label">属性加成：</span>{d.stats}</span></div>}
                 {d.traits && <div className="stat-row"><span><span className="label">特征：</span>{d.traits}</span></div>}
