@@ -809,3 +809,38 @@ test('terminology editor renders actual preset input values and a targeted repai
     assert(incomplete.includes('填入空缺的已确认置换（1）'));
     assert(incomplete.includes('placeholder="留空使用原版称呼"'));
 });
+
+
+test('tool template picker limits all nine tools to their matching original category', () => {
+    const { templatesForTool } = load('utils/tool-templates.ts');
+    const entries = Object.keys(TemplateModules).map(category => ({ category, id: category }));
+    const expected = { schools: 'class', moves: 'power', roots: 'race', origins: 'race', destinies: 'race', feats: 'feat', items: 'equipment', traditions: 'paragon-path', paths: 'epic-destiny' };
+    for (const [module, category] of Object.entries(expected)) assert.deepEqual(templatesForTool(entries, module).map(entry => entry.category), [category]);
+});
+
+test('tool picker reads installed packs offline, follows active pack and preserves originals', async () => {
+    const fake = require('fake-indexeddb');
+    const previousDB = global.indexedDB, previousFetch = global.fetch;
+    global.indexedDB = new fake.IDBFactory();
+    global.fetch = () => { throw new Error('network forbidden'); };
+    const { savePack, readPack, deletePack } = load('utils/template-cache.ts');
+    const { cachedToolPack } = load('utils/tool-templates.ts');
+    const { importTemplatePack, loadTemplate } = load('utils/template-loader.ts');
+    const original = { id: 'offline-feat', name: '缓存专长', category: 'feat', sourceText: '完整原版规则' };
+    const pack = { version: 1, sourceVersion: 'offline-v1', originals: [original] };
+    try {
+        assert.equal((await cachedToolPack()).pack, undefined);
+        await savePack(pack, { id: 'one', name: '第一包', source: 'test' });
+        await savePack({ ...pack, sourceVersion: 'offline-v2' }, { id: 'two', name: '第二包', source: 'test' });
+        assert.equal((await cachedToolPack()).selected.id, 'two');
+        const cached = await cachedToolPack('one');
+        const index = importTemplatePack(cached.pack);
+        const detail = await loadTemplate('/', index.entries[0], index, new AbortController().signal);
+        const drafts = adaptTemplate(detail.original, 'feats', index.sourceVersion, detail.powers);
+        assert.equal(drafts.length, 1);
+        assert.equal(drafts[0].module, 'feats');
+        assert.deepEqual((await readPack('one')).originals[0], original);
+        await deletePack('one');
+        await assert.rejects(cachedToolPack('one'), /已移除/);
+    } finally { global.indexedDB = previousDB; global.fetch = previousFetch; }
+});

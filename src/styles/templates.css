@@ -35,3 +35,5 @@
     .template-results { max-height: 25vh; }
     .template-detail { max-height: none; }
 }
+
+.template-picker-grid { min-width: 0; }

@@ -26,7 +26,7 @@ import { createResource, duplicateResource, withItems } from './utils/resources'
 import { downloadJSON, makeArchive, mergeResources, type ImportMode } from './utils/archive';
 
 type Confirmation = { kind: 'delete'; module: ModuleType; id: string } | { kind: 'recovery' } | null;
-type Navigation = { kind: 'module'; module: ModuleType; id?: string } | { kind: 'home' } | { kind: 'create' } | { kind: 'templates' } | { kind: 'cards' };
+type Navigation = { kind: 'module'; module: ModuleType; id?: string } | { kind: 'home' } | { kind: 'create' } | { kind: 'templates' } | { kind: 'templatePicker' } | { kind: 'cards' };
 const TemplatesDialog = lazy(() => import('./components/TemplatesDialog'));
 
 function App() {
@@ -39,7 +39,7 @@ function App() {
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [incoming, setIncoming] = useState<{ data: Partial<DB>; terminology?: Terminology } | null>(null);
   const [showTerms, setShowTerms] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
+  const [showTemplates, setShowTemplates] = useState<'manager' | 'picker' | null>(null);
   const [notice, setNotice] = useState('');
   const [recoveryExported, setRecoveryExported] = useState(false);
   const [draft, setDraft] = useState<{ module: ModuleType; item: Item } | null>(null);
@@ -57,7 +57,8 @@ function App() {
 
   const performNavigation = (action: Navigation, data = db) => {
     if (action.kind === 'home') setViewMode('home');
-    else if (action.kind === 'templates') setShowTemplates(true);
+    else if (action.kind === 'templates') setShowTemplates('manager');
+    else if (action.kind === 'templatePicker') setShowTemplates('picker');
     else if (action.kind === 'cards') setShowCards(true);
     else if (action.kind === 'create') {
       const item = createResource(module); library.update(withItems(data, module, [item, ...data[module]])); setCurrentItemId(item.id);
@@ -126,10 +127,10 @@ function App() {
   const bundle = (ids: string[], images: boolean) => bundleEntries(workingDB[module].filter(item => ids.includes(item.id)).map(item => ({ module, item })), images);
   const currentItem = workingDB[module].find(item => item.id === currentItemId) ?? null;
   const copyTemplates = (drafts: TemplateDraft[]) => {
-    if (!drafts.length) return;
+    if (!drafts.length || library.blocked) return;
     let next = db;
     for (const draft of drafts) next = withItems(next, draft.module, [draft.item, ...next[draft.module]]);
-    library.update(next); setModule(drafts[0].module); setCurrentItemId(drafts[0].item.id); setViewMode('tool'); setShowTemplates(false);
+    library.update(next); setModule(drafts[0].module); setCurrentItemId(drafts[0].item.id); setViewMode('tool'); setShowTemplates(null);
     setNotice(`已复制 ${drafts.length} 条 4E 草稿。原版保持只读；请查看编辑器中的“4E 原版对照”和转换提示。`);
   };
 
@@ -142,7 +143,7 @@ function App() {
     {showCards && <CardLibraryDialog db={workingDB} busy={packing} status={notice} onBundle={(entries, images) => void bundleEntries(entries, images)} onClose={() => setShowCards(false)} />}
     {saveAs && currentItem && <SaveAsDialog name={currentItem.name} onClose={() => setSaveAs(false)} onSave={name => { saveCard(true, name); setSaveAs(false); }} />}
     {pendingNavigation && <Dialog title="当前卡片尚未保存" onCancel={() => setPendingNavigation(null)}><p><TermDisplay>{"请选择如何处理修改，再离开当前卡片。"}</TermDisplay></p><div className="dialog-actions"><button className="btn" onClick={() => setPendingNavigation(null)}><TermDisplay>{"继续编辑"}</TermDisplay></button><button className="btn" onClick={() => { const action = pendingNavigation; setDraft(null); setPendingNavigation(null); performNavigation(action); }}><TermDisplay>{"放弃修改"}</TermDisplay></button><button className="btn" onClick={() => { const next = saveCard(true); const action = pendingNavigation; setPendingNavigation(null); performNavigation(action, next); }}><TermDisplay>{"复制保存"}</TermDisplay></button><button className="btn btn-primary" onClick={() => { const next = saveCard(); const action = pendingNavigation; setPendingNavigation(null); performNavigation(action, next); }}><TermDisplay>{"覆盖保存"}</TermDisplay></button></div></Dialog>}
-    {showTemplates && <Suspense fallback={<div className="feedback" role="status"><TermDisplay>{"正在打开资源管理…"}</TermDisplay></div>}><TemplatesDialog currentModule={module} authorBytes={new TextEncoder().encode(JSON.stringify({ db, terminology: library.terminology })).byteLength} onCopy={copyTemplates} onClose={() => setShowTemplates(false)} /></Suspense>}
+    {showTemplates && <Suspense fallback={<div className="feedback" role="status"><TermDisplay>{"正在读取 4E 资源…"}</TermDisplay></div>}><TemplatesDialog key={showTemplates} mode={showTemplates} onManage={() => setShowTemplates('manager')} currentModule={module} authorBytes={new TextEncoder().encode(JSON.stringify({ db, terminology: library.terminology })).byteLength} onCopy={copyTemplates} onClose={() => setShowTemplates(null)} /></Suspense>}
     {showTerms && <TerminologyDialog onClose={() => setShowTerms(false)} />}
     {showDisclaimer && <DisclaimerModal onClose={() => setShowDisclaimer(false)} />}
     {confirmation && <ConfirmModal
@@ -175,7 +176,7 @@ function App() {
       </div>}
       {library.error && <div className="feedback feedback-error" role="alert">{<TermDisplay>{library.error}</TermDisplay>}</div>}
       {notice && <div className="feedback" role="status">{<TermDisplay>{notice}</TermDisplay>}<button className="btn" onClick={() => setNotice('')}><TermDisplay>{"关闭"}</TermDisplay></button></div>}
-      {viewMode === 'tool' && <div className="card-tools"><button className="btn btn-primary" disabled={!currentItem || library.blocked} onClick={() => saveCard()}><TermDisplay>{"覆盖保存"}</TermDisplay></button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => saveCard(true)}><TermDisplay>{"复制保存"}</TermDisplay></button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => setSaveAs(true)}><TermDisplay>{"不覆盖另存"}</TermDisplay></button><button className="btn" disabled={!draft} onClick={() => setDraft(null)}><TermDisplay>{"放弃修改"}</TermDisplay></button><label className="btn import-button"><TermDisplay>{"导入卡片"}</TermDisplay><input aria-label="当前工具导入 JSON、PNG 或 ZIP" type="file" accept=".json,.png,.zip" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file, module); }} /></label><label className="btn import-button"><TermDisplay>{"导入 4E 模板"}</TermDisplay><input aria-label="当前工具直接导入 4E 模板 JSON" type="file" accept=".json" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file, module); }} /></label><small><TermDisplay>{"修改先保留为草稿；选择保存后写入本地。"}</TermDisplay></small></div>}
+      {viewMode === 'tool' && <div className="card-tools"><button className="btn btn-primary" disabled={!currentItem || library.blocked} onClick={() => saveCard()}><TermDisplay>{"覆盖保存"}</TermDisplay></button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => saveCard(true)}><TermDisplay>{"复制保存"}</TermDisplay></button><button className="btn" disabled={!currentItem || library.blocked} onClick={() => setSaveAs(true)}><TermDisplay>{"不覆盖另存"}</TermDisplay></button><button className="btn" disabled={!draft} onClick={() => setDraft(null)}><TermDisplay>{"放弃修改"}</TermDisplay></button><label className="btn import-button"><TermDisplay>{"导入卡片"}</TermDisplay><input aria-label="当前工具导入 JSON、PNG 或 ZIP" type="file" accept=".json,.png,.zip" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file, module); }} /></label><button type="button" className="btn" disabled={library.blocked} onClick={() => navigate({ kind: 'templatePicker' })}><TermDisplay>{"导入 4E 模板"}</TermDisplay></button><small><TermDisplay>{"修改先保留为草稿；选择保存后写入本地。"}</TermDisplay></small></div>}
       <main className="workspace-content">
         {viewMode === 'home' ? <HomePage db={db} onNavigate={selectModule} searchTerm={homeSearch} onSearch={setHomeSearch} /> : <>
           <ListPanel key={`list:${module}`} items={workingDB[module]} currentItemId={currentItemId} onSelect={id => selectModule(module, id)}
