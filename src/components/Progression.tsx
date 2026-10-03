@@ -18,7 +18,7 @@ export function ProgressionEditor({ module, item, onChange }: {
     const update = <K extends keyof ProgressionItem>(key: K, value: ProgressionItem[K]) => onChange({ ...item, [key]: value });
     const features = item.features ?? [], powers = item.powers ?? [];
     return <div className="editor-panel">
-        <TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={next => onChange(next as ProgressionItem)} />
+        <TemplateReference item={item} /><h3 className="editor-section-title">基础信息</h3><HeaderColorEditor module={module} item={item} onChange={next => onChange(next as ProgressionItem)} />
         <Input label={`${titleOf(module)}名称`} value={item.name} onChange={value => update('name', value)} />
         <Text label="引言 / 意境" value={item.flavor} onChange={value => update('flavor', value)} />
         <Input label="起始等级" value={item.entryLevel} onChange={value => update('entryLevel', value)} />

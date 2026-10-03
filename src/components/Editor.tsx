@@ -35,6 +35,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
         return (
             <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
+                    <h3 className="editor-section-title">基础信息</h3>
                     <div className="row">
                         <div className="col"><Input label="宝物名称" value={d.name} onChange={(v) => update('name', v)} /></div>
                         <div className="col"><Input label="等级" value={d.level} onChange={(v) => /^\d*$/.test(v) && update('level', Number(v))} /></div>
@@ -47,6 +48,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                     <Text label="外观" value={d.flavor} onChange={(v) => update('flavor', v)} />
                     <Input label="淬炼等级" value={d.enhance} onChange={(v) => update('enhance', v)} />
                     <Input label="暴击效果" value={d.crit} onChange={(v) => update('crit', v)} />
+                    <h3 className="editor-section-title">规则与效果</h3>
                     <RuleText label="特性 (Property)" value={d.prop} onChange={(v) => update('prop', v)} />
                     <RuleText label="神通 (Power)" value={d.power} onChange={(v) => update('power', v)} />
                 </form>
@@ -57,6 +59,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
         return (
             <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
+                    <h3 className="editor-section-title">基础信息</h3>
                     <Input label="门派名称" value={d.name} onChange={(v) => update('name', v)} />
                     <Text label="门派描述 (包含：职能、威能来源、关键属性)" value={d.description} onChange={(v) => update('description', v)} />
 
@@ -74,6 +77,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
 
                     <Text label="受训技能" value={d.trainedSkills} onChange={(v) => update('trainedSkills', v)} />
 
+                    <h3 className="editor-section-title">门派特技</h3>
                     <TraitListEditor label="门派特技 (School Features)" value={d.features} onChange={(v) => update('features', v)} />
                 </form>
             </div>
@@ -83,6 +87,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
         return (
             <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
+                    <h3 className="editor-section-title">基础信息</h3>
                     <Input label="根骨名称" value={d.name} onChange={(v) => update('name', v)} />
                     <Input label="属性加成" value={d.attributes} onChange={(v) => update('attributes', v)} />
                     <div className="row">
@@ -99,12 +104,14 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
         return (
             <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
+                    <h3 className="editor-section-title">基础信息</h3>
                     <Input label="出身名称" value={d.name} onChange={(v) => update('name', v)} />
                     <div className="row">
                         <div className="col"><Input label="语言" value={d.languages} onChange={(v) => update('languages', v)} /></div>
                         <div className="col"><Input label="技能加值" value={d.skillBonuses} onChange={(v) => update('skillBonuses', v)} /></div>
                     </div>
                     <Text label="背景描述" value={d.flavor} onChange={(v) => update('flavor', v)} />
+                    <h3 className="editor-section-title">出身特性</h3>
                     <TraitListEditor label="出身特性 (Traits)" value={d.traits} onChange={(v) => update('traits', v)} />
                 </form>
             </div>
@@ -115,6 +122,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
         return (
             <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
+                    <h3 className="editor-section-title">基础信息</h3>
                     <Input label="威能名称" value={d.name} onChange={(v) => update('name', v)} />
                     <Text label="描述" value={d.flavor} onChange={(v) => update('flavor', v)} />
                     <div className="row">
@@ -127,6 +135,7 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
                         <div className="col"><RangeBuilder value={d.range} onChange={(v) => update('range', v)} /></div>
                         <div className="col"><Input label="目标" value={d.target} onChange={(v) => update('target', v)} /></div>
                     </div>
+                    <h3 className="editor-section-title">规则与效果</h3>
                     <RuleText label="效果" value={d.effect} onChange={(v) => update('effect', v)} />
                 </form>
             </div>
@@ -138,10 +147,12 @@ export const Editor: React.FC<EditorProps> = ({ module, item, onChange }) => {
         return (
             <div className="editor-panel"><TemplateReference item={item} /><HeaderColorEditor module={module} item={item} onChange={onChange} />
                 <form onSubmit={e => e.preventDefault()}>
+                    <h3 className="editor-section-title">基础信息</h3>
                     <Input label={lbl + '名称'} value={d.name} onChange={(v) => update('name', v)} />
                     <Input label="修炼门槛" value={d.req} onChange={(v) => update('req', v)} />
                     <Input label="层级" value={d.tier} onChange={(v) => update('tier', v)} />
                     <Text label="描述" value={d.flavor} onChange={(v) => update('flavor', v)} />
+                    <h3 className="editor-section-title">规则与效果</h3>
                     <RuleText label="造诣效果" value={d.benefit} onChange={(v) => update('benefit', v)} />
                 </form>
             </div>

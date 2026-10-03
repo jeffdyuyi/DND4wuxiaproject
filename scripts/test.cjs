@@ -488,15 +488,15 @@ test('editing keeps saved cards intact until overwrite, copy or named save-as is
         assert.equal(draftList.props.colorBlocked, true);
         draftList.props.onApplyColor([original.id], '#112233', false);
         assert.equal(db.moves[0].headerColor, undefined, 'batch application must not overwrite or save an active draft');
-        button(tree, '复制保存').props.onClick(); tree = render();
+        draftList.props.onDuplicate(original.id); tree = render();
         assert.equal(db.moves.length, 2); assert.equal(db.moves.find(item => item.id === original.id).name, '原卡');
         const copy = db.moves[0]; assert.notEqual(copy.id, original.id);
         find(tree, element => element.type === Editor).props.onChange({ ...copy, name: '另存草稿' }); tree = render();
-        button(tree, '不覆盖另存').props.onClick(); tree = render();
+        button(tree, '另存为…').props.onClick(); tree = render();
         find(tree, element => element.type === SaveAsDialog).props.onSave('独立新卡'); tree = render();
         assert.equal(db.moves.length, 3); assert.equal(db.moves.find(item => item.id === copy.id).name, copy.name); assert.equal(db.moves[0].name, '独立新卡');
         const saved = db.moves[0]; find(tree, element => element.type === Editor).props.onChange({ ...saved, name: '覆盖后的名字' }); tree = render();
-        button(tree, '覆盖保存').props.onClick(); tree = render();
+        button(tree, '保存').props.onClick(); tree = render();
         assert.equal(db.moves.length, 3); assert.equal(db.moves.find(item => item.id === saved.id).name, '覆盖后的名字');
         const savedList = find(tree, element => element.type === ListPanel);
         assert.equal(savedList.props.colorBlocked, false);
@@ -843,4 +843,38 @@ test('tool picker reads installed packs offline, follows active pack and preserv
         await deletePack('one');
         await assert.rejects(cachedToolPack('one'), /已移除/);
     } finally { global.indexedDB = previousDB; global.fetch = previousFetch; }
+});
+
+
+test('resource list separates batch selection and keeps search through collapse', () => {
+    const termModule = load('hooks/TerminologyContext.tsx'), colorModule = load('hooks/ColorLibraryContext.ts');
+    const originalState = React.useState, originalTerms = termModule.useTerminology, originalColors = colorModule.useColorLibrary;
+    const states = []; let cursor = 0, imported;
+    React.useState = initial => { const index = cursor++; if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial; return [states[index], value => { states[index] = typeof value === 'function' ? value(states[index]) : value; }]; };
+    termModule.useTerminology = () => ({ terminology: defaultTerminology() });
+    colorModule.useColorLibrary = () => ({ colors: [] });
+    const { ListPanel } = load('components/ListPanel.tsx');
+    const first = { ...createResource('moves'), name: '第一招' }, second = { ...createResource('moves'), name: '第二招' };
+    const all = (element, predicate) => !React.isValidElement(element) ? [] : [...(predicate(element) ? [element] : []), ...React.Children.toArray(element.props.children).flatMap(child => all(child, predicate))];
+    const props = { items: [first, second], currentItemId: first.id, onCreate: () => {}, onTemplate: () => {}, onImport: file => { imported = file; }, onSelect: () => {}, onDelete: () => {}, onDuplicate: () => {}, onExportItems: () => {}, onBundle: () => {}, onApplyColor: () => {}, busy: false, colorBlocked: false };
+    const render = () => { cursor = 0; return ListPanel(props); };
+    try {
+        let tree = render();
+        assert.equal(all(tree, e => e.type === 'input' && e.props.type === 'checkbox').length, 0);
+        all(tree, e => e.props['aria-label'] === '搜索当前资源库')[0].props.onChange({ target: { value: '第一' } }); tree = render();
+        assert.equal(all(tree, e => e.type === 'details' && e.props.className === 'item-actions').length, 1);
+        all(tree, e => e.type === 'button' && e.props.className.includes('batch-toggle'))[0].props.onClick(); tree = render();
+        let checkbox = all(tree, e => e.type === 'input' && e.props.type === 'checkbox')[0];
+        checkbox.props.onChange({ target: { checked: true } }); tree = render();
+        assert.equal(all(tree, e => e.type === 'input' && e.props.type === 'checkbox')[0].props.checked, true);
+        all(tree, e => e.props['aria-label'] === '收起资源列表')[0].props.onClick(); tree = render();
+        assert.equal(all(tree, e => e.props['aria-label'] === '搜索当前资源库').length, 0);
+        all(tree, e => e.props['aria-label'] === '展开资源列表')[0].props.onClick(); tree = render();
+        assert.equal(all(tree, e => e.props['aria-label'] === '搜索当前资源库')[0].props.value, '第一');
+        all(tree, e => e.type === 'button' && e.props.className.includes('batch-toggle'))[0].props.onClick(); tree = render();
+        assert.equal(all(tree, e => e.type === 'input' && e.props.type === 'checkbox').length, 0);
+        const file = { name: 'card.json' }, target = { files: [file], value: 'card.json' };
+        all(tree, e => e.props['aria-label'] === '当前工具导入 JSON、PNG 或 ZIP')[0].props.onChange({ target });
+        assert.equal(imported, file); assert.equal(target.value, '');
+    } finally { React.useState = originalState; termModule.useTerminology = originalTerms; colorModule.useColorLibrary = originalColors; }
 });

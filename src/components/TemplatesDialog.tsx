@@ -54,7 +54,7 @@ export default function TemplatesDialog({ currentModule, authorBytes, onCopy, on
         catch (error) { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : '模板加载失败'); }
         finally { if (!controller.signal.aborted) setLoading(false); }
     };
-    return <Dialog title={picker ? `导入 4E 模板 · ${Config[currentModule].title}` : "资源管理"} onCancel={onClose} className="template-dialog">
+    return <Dialog title={picker ? `导入 4E 模板 · ${Config[currentModule].title}` : "4E 参考资源"} onCancel={onClose} className="template-dialog">
         <p className="progression-hint">{picker && <>从已下载资料中选择适用于当前工具的模板。导入后可直接编辑。 </>}查看原版资料，复制为自己的资源后再修改。原版不随草稿编辑改变；转换提示请在复制前核对。</p>
         <div className={picker ? "template-picker-grid" : "resource-manager-grid"}>
         {!picker && <ResourceManagerPanel onActivate={activateIndex} authorBytes={authorBytes} />}

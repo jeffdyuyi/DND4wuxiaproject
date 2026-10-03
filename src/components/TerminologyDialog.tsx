@@ -44,10 +44,11 @@ export function TerminologyDialog({ onClose }: { onClose: () => void }) {
         </form>}
         <p className="progression-hint">{entries.length} 个术语 · 编辑后按回车或离开输入框保存 · 原版词的置换直接填写在对应行</p>
         {error && <p role="alert" className="feedback-error">{error}</p>}
+        <div className="term-table-heading" aria-hidden="true"><span>标准词 / 分类</span><span>当前显示</span><span>置换名称</span><span>操作</span></div>
         <div className="term-list">
             {entries.map(term => <section className={`term-entry ${term.hidden ? 'term-hidden' : ''}`} key={`${term.id}:${term.replacement}`}>
-                <div className="term-original"><strong>{term.original || term.value}</strong><small>{term.origin === 'custom' ? '自定义词' : term.origin === 'wuxia' ? '原有武侠词' : '4E 标准词'} · 显示：{termName(term)}</small></div>
-                <label>置换名称<input aria-label={`置换：${term.original || term.value}`} className="form-control" placeholder="留空使用原版称呼" defaultValue={term.replacement || ''} onBlur={event => { if (event.target.value !== (term.replacement || '')) rename(term.id, event.target.value); }}
+                <div className="term-original"><strong>{term.original || term.value}</strong><small>{TermCategories[term.category]} · {term.origin === 'custom' ? '自定义词' : term.origin === 'wuxia' ? '原有武侠词' : '4E 标准词'}</small></div><div className="term-current"><span className="term-mobile-label">当前显示</span>{termName(term)}</div>
+                <label><span className="term-mobile-label">置换名称</span><input aria-label={`置换：${term.original || term.value}`} className="form-control" placeholder="留空使用原版称呼" defaultValue={term.replacement || ''} onBlur={event => { if (event.target.value !== (term.replacement || '')) rename(term.id, event.target.value); }}
                     onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }} /></label>
                 <div className="term-row-actions"><button type="button" className="btn" disabled={!term.replacement} onClick={() => rename(term.id, '')}>恢复原称呼</button>
                     <button type="button" className="btn" onClick={() => update({ ...terminology, entries: terminology.entries.map(current => current.id === term.id ? { ...current, hidden: !current.hidden } : current) })}>{term.hidden ? '恢复选词' : '隐藏选词'}</button></div>

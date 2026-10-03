@@ -23,7 +23,7 @@ export function EditorWorkbench({ editor, preview, resourceId }: { editor: React
         const host = editorRef.current;
         if (!host) return;
         const collect = () => {
-            const elements = [...host.querySelectorAll<HTMLElement>('.form-group > label, .editor-panel > h3, .editor-group > summary')];
+            const elements = [...host.querySelectorAll<HTMLElement>('.form-group > label, .editor-panel > h3, .editor-group > summary, .editor-section > legend, .editor-section-title')];
             anchorElements.current = elements;
             setAnchors(elements.map(element => element.textContent?.trim() || '编辑区块'));
         };
@@ -34,7 +34,7 @@ export function EditorWorkbench({ editor, preview, resourceId }: { editor: React
             const panel = host.querySelector('.editor-panel');
             if (!panel) return;
             const top = panel.getBoundingClientRect().top + 28;
-            const allLabels = [...host.querySelectorAll<HTMLElement>('.form-group > label, .editor-panel > h3, .editor-group > summary')];
+            const allLabels = [...host.querySelectorAll<HTMLElement>('.form-group > label, .editor-panel > h3, .editor-group > summary, .editor-section > legend, .editor-section-title')];
             const labels = allLabels.filter(el => el.getClientRects().length);
             const current = labels.filter(el => el.getBoundingClientRect().top <= top).at(-1) ?? labels[0];
             if (current) setActive(String(allLabels.indexOf(current)));
