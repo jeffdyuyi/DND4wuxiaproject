@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
+import type { TemplateDraft } from './utils/templates';
 import { Sidebar } from './components/Sidebar';
 import { ListPanel } from './components/ListPanel';
 import { Editor } from './components/Editor';
@@ -17,6 +18,7 @@ import { createResource, duplicateResource, withItems } from './utils/resources'
 import { downloadJSON, makeArchive, mergeResources, readLibraryArchive, type ImportMode } from './utils/archive';
 
 type Confirmation = { kind: 'delete'; module: ModuleType; id: string } | { kind: 'recovery' } | null;
+const TemplatesDialog = lazy(() => import('./components/TemplatesDialog'));
 
 function App() {
   const library = useLibrary();
@@ -28,6 +30,7 @@ function App() {
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [incoming, setIncoming] = useState<{ data: Partial<DB>; terminology?: Terminology } | null>(null);
   const [showTerms, setShowTerms] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [notice, setNotice] = useState('');
   const [recoveryExported, setRecoveryExported] = useState(false);
 
@@ -68,8 +71,16 @@ function App() {
   const exportLibrary = () => downloadJSON(makeArchive(db, library.terminology), '吾侠_全库.json');
   const exportItems = (ids: string[]) => downloadJSON(makeArchive({ [module]: db[module].filter(item => ids.includes(item.id)) }), `吾侠_${Config[module].title}_资源.json`);
   const currentItem = db[module].find(item => item.id === currentItemId) ?? null;
+  const copyTemplates = (drafts: TemplateDraft[]) => {
+    if (!drafts.length) return;
+    let next = db;
+    for (const draft of drafts) next = withItems(next, draft.module, [draft.item, ...next[draft.module]]);
+    library.update(next); setModule(drafts[0].module); setCurrentItemId(drafts[0].item.id); setViewMode('tool'); setShowTemplates(false);
+    setNotice(`已复制 ${drafts.length} 条 4E 草稿。原版保持只读；请查看编辑器中的“4E 原版对照”和转换提示。`);
+  };
 
   return <TerminologyContext.Provider value={{ terminology: library.terminology, update: library.updateTerminology, collect: library.collect }}><div className="app-container">
+    {showTemplates && <Suspense fallback={<div className="feedback" role="status">正在打开模板库…</div>}><TemplatesDialog currentModule={module} onCopy={copyTemplates} onClose={() => setShowTemplates(false)} /></Suspense>}
     {showTerms && <TerminologyDialog onClose={() => setShowTerms(false)} />}
     {showDisclaimer && <DisclaimerModal onClose={() => setShowDisclaimer(false)} />}
     {confirmation && <ConfirmModal
@@ -89,6 +100,7 @@ function App() {
         </span>
         <button type="button" className="btn" onClick={exportLibrary}>备份全库</button>
         <button type="button" className="btn" onClick={() => setShowTerms(true)}>术语库</button>
+        <button type="button" className="btn" onClick={() => setShowTemplates(true)}>4E 模板</button>
         <label className="btn import-button">导入 JSON<input aria-label="导入资源 JSON" type="file" accept=".json,application/json" onChange={event => {
           const file = event.target.files?.[0]; event.target.value = ''; if (file) void handleImport(file);
         }} /></label>

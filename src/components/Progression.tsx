@@ -5,6 +5,7 @@ import { Input, Text } from './FormHelpers';
 import { PowerEditor } from './PowerEditor';
 import { PowerCard } from './PowerCard';
 import { RichText } from './RichText';
+import { TemplateReference } from './TemplateReference';
 type ProgressionModule = 'traditions' | 'paths';
 const titleOf = (module: ProgressionModule) => module === 'traditions' ? '修行传承' : '成道之途';
 
@@ -14,6 +15,7 @@ export function ProgressionEditor({ module, item, onChange }: {
     const update = <K extends keyof ProgressionItem>(key: K, value: ProgressionItem[K]) => onChange({ ...item, [key]: value });
     const features = item.features ?? [], powers = item.powers ?? [];
     return <div className="editor-panel">
+        <TemplateReference item={item} />
         <Input label={`${titleOf(module)}名称`} value={item.name} onChange={value => update('name', value)} />
         <Text label="引言 / 意境" value={item.flavor} onChange={value => update('flavor', value)} />
         <Input label="起始等级" value={item.entryLevel} onChange={value => update('entryLevel', value)} />

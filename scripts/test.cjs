@@ -23,10 +23,97 @@ const { defaultTerminology, validateTerminology, addTerms, mergeTerminology } = 
 const { readLibraryArchive } = load('utils/archive.ts');
 const { TermSelect } = load('components/TermControls.tsx');
 const { TerminologyContext } = load('hooks/TerminologyContext.tsx');
+const { adaptTemplate, adaptPower, TemplateModules, plainText } = load('utils/templates.ts');
 function storage(initial = {}) {
     const values = new Map(Object.entries(initial));
     return { values, getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
 }
+
+test('power templates preserve primary, secondary and unrecognized rule sections without mutating originals', () => {
+    const original = { id: 'source-power', name: '原版威能', category: 'power', usage: 'encounter', actionType: '即时中断', level: '11', keywords: '武器，雷鸣', range: '近战 兵器', details: '<table><tr><th>攻击：</th><td>力量 vs. AC</td></tr><tr><th>命中：</th><td>1[W]伤害</td></tr><tr><th>次攻击：</th><td>另一个目标</td></tr><tr><th>命中：</th><td>次攻击伤害</td></tr></table>' };
+    const before = JSON.stringify(original);
+    const draft = adaptPower(original, 'test');
+    assert.equal(draft.item.action, 'interrupt'); assert.equal(draft.item.type, 'special');
+    assert.equal(draft.item.def, 'AC'); assert.equal(draft.item.att, '力量');
+    assert(draft.item.rules.some(rule => rule.text === '次攻击伤害'));
+    assert.equal(draft.item.templateReference.entryId, original.id);
+    assert.equal(draft.item.templateReference.originalJSON, before);
+    draft.item.name = '魔改'; assert.equal(JSON.stringify(original), before);
+    assert.equal(normalizeResource('moves', draft.item).rules.length, 2);
+    const ambiguous = adaptPower({ ...original, usage: '特殊', details: '复杂规则 <<宏>>' }, 'test');
+    assert(ambiguous.warnings.length); assert(ambiguous.item.rules[0].text.includes('复杂规则'));
+    assert(!plainText('<script>alert(1)</script><p>正文</p>').includes('alert'));
+});
+
+test('progression templates resolve embedded powers and keep missing references and culmination', () => {
+    const power = { id: '原版招式 English', name: '原版招式', category: 'power', usage: 'daily', actionType: '标准动作', level: '20', details: '<table><tr><th>效果：</th><td>效果全文</td></tr></table>' };
+    const original = { id: '原版命运', name: '原版命运', category: 'epic-destiny', sourceText: '说明\n!! 不朽 Immortality\n终局全文\n!! 21级：特性\n特性全文\n!! 26级：招式\n{{原版招式 English}}\n!! 30级：未知\n{{缺失威能}}', wiki: { transclusions: [power.id, '缺失威能'] } };
+    const draft = adaptTemplate(original, 'paths', 'test', new Map([[power.id, power]]))[0];
+    assert.equal(draft.item.powers.length, 1); assert.equal(draft.item.powers[0].level, 20); assert.equal(draft.item.powers[0].acquiredLevel, '26');
+    assert(draft.item.culmination.includes('终局全文')); assert(draft.item.features.some(feature => feature.desc.includes('缺失威能')));
+    assert(draft.warnings.some(warning => warning.includes('缺失威能')));
+    const restored = readArchive(makeArchive({ paths: [draft.item] })).paths[0];
+    assert.equal(restored.templateReference.originalJSON, JSON.stringify(original));
+    assert.equal(restored.powers[0].templateReference.entryId, power.id);
+});
+
+test('local source templates map to valid resource drafts and the index resolves exact source IDs', context => {
+    const folder = path.join(__dirname, '../.local-templates');
+    if (!fs.existsSync(folder)) { context.skip('本地资料包不随公开仓库分发'); return; }
+    const index = JSON.parse(fs.readFileSync(path.join(folder, 'index.json'), 'utf8'));
+    const files = [...new Set(index.entries.map(entry => entry.file))];
+    const rows = files.flatMap(file => JSON.parse(fs.readFileSync(path.join(folder, file), 'utf8')));
+    const byKey = new Map(rows.map(entry => [`${entry.category}:${entry.id}`, entry]));
+    const powers = new Map(rows.filter(entry => entry.category === 'power').map(entry => [entry.id, entry]));
+    assert.equal(index.entries.length, rows.length);
+    for (const summary of index.entries) {
+        const original = byKey.get(`${summary.category}:${summary.id}`); assert(original);
+        for (const module of TemplateModules[summary.category]) {
+            const drafts = adaptTemplate(original, module, index.sourceVersion, powers);
+            assert(drafts.length > 0);
+            for (const draft of drafts) {
+                assert.equal(draft.module, module);
+                const restored = normalizeResource(module, draft.item);
+                assert(restored.sourceText || restored.templateReference.originalJSON);
+                assert.notEqual(restored.id, original.id);
+            }
+        }
+    }
+});
+
+test('template loader fetches related powers and rejects failed or invalid file requests', async () => {
+    const { loadTemplate } = load('utils/template-loader.ts');
+    const originalFetch = global.fetch;
+    const controller = new AbortController();
+    const power = { id: 'power-id', name: '招式', category: 'power' };
+    const original = { id: 'path-id', name: '传承', category: 'paragon-path', wiki: { transclusions: ['power-id', '不存在'] } };
+    const summary = { ...original, nameEn: '', level: '', keywords: '', source: '', file: 'test-path.json' };
+    const index = { version: 1, sourceVersion: 'test', entries: [summary, { ...power, file: 'test-power.json' }] };
+    global.fetch = async url => ({ ok: true, json: async () => String(url).includes('test-path') ? [original] : [power] });
+    try {
+        const result = await loadTemplate('/project/', summary, index, controller.signal);
+        assert.equal(result.powers.get('power-id').name, '招式'); assert(!result.powers.has('不存在'));
+        await assert.rejects(loadTemplate('/project/', { ...summary, file: '../unsafe.json' }, index, controller.signal), /文件名/);
+        global.fetch = async () => ({ ok: false, status: 404 });
+        await assert.rejects(loadTemplate('/project/', { ...summary, file: 'absent.json' }, index, controller.signal), /404/);
+    } finally { global.fetch = originalFetch; }
+});
+
+test('private template packs validate atomically, preserve source snapshots and resolve embedded powers without network', async () => {
+    const { importTemplatePack, loadTemplate, loadTemplateIndex } = load('utils/template-loader.ts');
+    const power = { id: 'private-power', name: '自定义测试招式', category: 'power', fields: { usage: '随意' } };
+    const parent = { id: 'private-path', name: '自定义测试传承', category: 'paragon-path', wiki: { transclusions: [power.id] } };
+    const pack = { version: 1, sourceVersion: 'test-private', originals: [power, parent] };
+    const index = importTemplatePack(pack);
+    power.name = '外部修改';
+    const signal = new AbortController().signal;
+    const result = await loadTemplate('/', index.entries[1], index, signal);
+    assert.equal(result.powers.get(power.id).name, '自定义测试招式');
+    assert.throws(() => importTemplatePack({ ...pack, originals: [parent, parent] }), /重复/);
+    assert.throws(() => importTemplatePack({ ...pack, originals: [{ ...parent, wiki: { transclusions: [123] } }] }), /引用/);
+    assert.throws(() => importTemplatePack({ ...pack, version: 2 }), /版本/);
+    assert.equal((await loadTemplateIndex('/', signal)).sourceVersion, 'test-private');
+});
 
 test('reference vocabulary has valid categories, preserved wuxia words and stable rule codes', () => {
     const terms = validateTerminology(defaultTerminology());
