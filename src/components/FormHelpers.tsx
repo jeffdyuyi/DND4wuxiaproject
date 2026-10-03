@@ -12,13 +12,17 @@ export function Input({ label, value, onChange }: FieldProps) {
     const id = useId();
     const { terminology } = useTerminology();
     const raw = /原版|来源|参考|名称|名字|标题/.test(label);
-    const display = createTermTranslator(terminology);
-    const canonical = createTermTranslator(terminology, true);
+    const display = createTermTranslator(terminology, false, /范围/.test(label) ? 'range' : undefined);
+    const canonical = createTermTranslator(terminology, true, /范围/.test(label) ? 'range' : undefined);
     return <div className="form-group"><label htmlFor={id}>{<TermDisplay>{label}</TermDisplay>}</label><input id={id} type="text" className="form-control" value={raw ? value ?? '' : display(String(value ?? ''))} onChange={event => onChange(raw ? event.target.value : canonical(event.target.value))} /></div>;
 }
 export function Text({ label, value, onChange }: FieldProps) {
     const id = useId();
-    return <div className="form-group"><label htmlFor={id}>{<TermDisplay>{label}</TermDisplay>}</label><textarea id={id} className="form-control" value={value ?? ''} onChange={event => onChange(event.target.value)} /></div>;
+    const { terminology } = useTerminology();
+    const raw = /原版|来源|参考/.test(label);
+    const display = createTermTranslator(terminology);
+    const canonical = createTermTranslator(terminology, true);
+    return <div className="form-group"><label htmlFor={id}>{<TermDisplay>{label}</TermDisplay>}</label><textarea id={id} className="form-control" value={raw ? value ?? '' : display(String(value ?? ''))} onChange={event => onChange(raw ? event.target.value : canonical(event.target.value))} /></div>;
 }
 export function Select({ label, value, onChange, options }: FieldProps & { options: readonly { v: string; t: string }[] }) {
     const id = useId();
@@ -31,8 +35,8 @@ export function KeywordSelector({ value, onChange }: { value: string; onChange: 
     const { terminology, collect } = useTerminology();
     const [category, setCategory] = useState<TermCategory>('other');
     const [search, setSearch] = useState('');
-    const display = createTermTranslator(terminology);
-    const canonical = createTermTranslator(terminology, true);
+    const display = createTermTranslator(terminology, false, 'keyword');
+    const canonical = createTermTranslator(terminology, true, 'keyword');
     const current = splitTerms(canonical(value));
     const toggle = (tag: string) => onChange((current.includes(tag) ? current.filter(key => key !== tag) : [...current, tag]).join('，'));
     const remember = (text: string, explicit = false) => {
@@ -45,7 +49,7 @@ export function KeywordSelector({ value, onChange }: { value: string; onChange: 
         <input aria-label="筛选关键词" className="form-control" placeholder="搜索可选关键词…" value={search} onChange={event => setSearch(event.target.value)} />
         {keywordCategories.map(group => <details className="term-keywords" key={group} open={!!search || undefined}><summary>{<TermDisplay>{TermCategories[group]}</TermDisplay>}</summary><div className="keyword-group">
             {terminology.entries.filter(term => term.category === group && !term.hidden && term.label.includes(search.trim())).map(term =>
-                <button type="button" key={term.id} title={term.reference ? `参考：${term.reference}` : '自定义词'} aria-pressed={current.includes(term.original || term.value)} className={`check-btn ${current.includes(term.label) ? 'selected' : ''}`} onClick={() => toggle(term.original || term.value)}>{<TermDisplay>{term.label}</TermDisplay>}</button>)}
+                <button type="button" key={term.id} title={term.reference ? `参考：${term.reference}` : '自定义词'} aria-pressed={current.includes(term.original || term.value)} className={`check-btn ${current.includes(term.label) ? 'selected' : ''}`} onClick={() => toggle(term.original || term.value)}>{<TermDisplay scope={term.category}>{term.label}</TermDisplay>}</button>)}
         </div></details>)}
         <label htmlFor={id}><TermDisplay>{"自定义关键词（逗号分隔）"}</TermDisplay></label>
         <input id={id} className="form-control" value={display(value)} onChange={event => onChange(canonical(event.target.value))} onBlur={event => remember(event.target.value)}
@@ -58,9 +62,9 @@ export function KeywordSelector({ value, onChange }: { value: string; onChange: 
 export function RangeBuilder({ value, onChange }: { value: string; onChange: (value: string) => void }) {
     const parts = parseRange(value);
     const update = (patch: Partial<typeof parts>) => onChange(buildRange({ ...parts, ...patch }));
-    return <div className="form-group"><strong><TermDisplay>{"范围构建器"}</TermDisplay></strong><div className="range-builder">
-        <select aria-label="范围类型" value={parts.type} onChange={event => update({ type: event.target.value })}>{Object.entries(RangeTypes).map(([key, title]) => <option key={key} value={key}>{<TermDisplay>{title.split('(')[0]}</TermDisplay>}</option>)}</select>
-        {(parts.type === 'Close' || parts.type === 'Area') && <select aria-label="范围形状" value={parts.shape} onChange={event => update({ shape: event.target.value })}>{Object.entries(Shapes).map(([key, title]) => <option key={key} value={key}>{<TermDisplay>{title}</TermDisplay>}</option>)}</select>}
+    return <div className="form-group"><strong><TermDisplay scope="range">{"范围构建器"}</TermDisplay></strong><div className="range-builder">
+        <select aria-label="范围类型" value={parts.type} onChange={event => update({ type: event.target.value })}>{Object.entries(RangeTypes).map(([key, title]) => <option key={key} value={key}>{<TermDisplay scope="range">{title.split('(')[0]}</TermDisplay>}</option>)}</select>
+        {(parts.type === 'Close' || parts.type === 'Area') && <select aria-label="范围形状" value={parts.shape} onChange={event => update({ shape: event.target.value })}>{Object.entries(Shapes).map(([key, title]) => <option key={key} value={key}>{<TermDisplay scope="range">{title}</TermDisplay>}</option>)}</select>}
         <input aria-label="距离或范围大小" placeholder="距离/兵器" value={parts.distance} onChange={event => update({ distance: event.target.value })} />
         {parts.type === 'Area' && <input aria-label="区域射程" placeholder="射程" value={parts.reach} onChange={event => update({ reach: event.target.value })} />}
     </div><Input label="范围文本（可直接编辑）" value={value} onChange={onChange} /></div>;

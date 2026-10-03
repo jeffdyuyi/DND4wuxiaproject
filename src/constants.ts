@@ -15,7 +15,7 @@ export type ModuleType = keyof typeof Config;
 
 export const Keywords = {
     source: ["外功", "内功", "外家", "内家", "先天", "奇门", "医道"],
-    damage: ["罡劲", "纯阳", "纯阴", "震煞", "丹毒", "浩然", "阴煞", "胆魄", "音波"],
+    damage: ["罡劲", "纯阳", "纯阴", "震煞", "丹毒", "浩然", "阴煞", "胆魄", "音波", "腐蚀"],
     effect: ["架势", "迷魂", "威慑", "幻术", "易容", "疗伤", "移形", "阵法", "无遗", "点穴"],
     accessory: ["兵器", "法器", "信物", "指法", "剑气"]
 };
@@ -34,7 +34,7 @@ export const ICONS: Record<ModuleType, string> = {
 
 export const ActionMap = {
     'std': { t: '出招', c: 'act-std' },
-    'mov': { t: '身法', c: 'act-mov' },
+    'mov': { t: '移动', c: 'act-mov' },
     'min': { t: '瞬息', c: 'act-min' },
     'free': { t: '随心', c: 'act-free' },
     'react': { t: '变招（旧版）', c: 'act-react' },

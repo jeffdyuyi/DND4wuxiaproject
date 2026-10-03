@@ -226,7 +226,7 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
                 <div className="stat-row">
                     <span>
                         {action.t && <span className={`act-badge ${action.c}`}>{<TermDisplay>{d.actionLabel ?? action.t}</TermDisplay>}</span>}
-                        {d.range && <span><span className="label"><TermDisplay>{"范围："}</TermDisplay></span>{<TermDisplay>{d.range}</TermDisplay>}</span>}
+                        {d.range && <span><span className="label"><TermDisplay>{"范围："}</TermDisplay></span>{<TermDisplay scope="range">{d.range}</TermDisplay>}</span>}
                     </span>
                 </div>
                 {d.target && <div className="stat-row"><span><span className="label"><TermDisplay>{"目标："}</TermDisplay></span>{<TermDisplay>{md(d.target)}</TermDisplay>}</span></div>}

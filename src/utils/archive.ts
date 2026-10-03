@@ -63,7 +63,7 @@ export function normalizeResource(module: ModuleType, value: unknown, path: stri
         data.rules = rows.map(row => ({ ...row, title: String(row.title ?? ''), text: String(row.text ?? '') }));
     }
     if (module === 'moves' || module === 'destinies') {
-        const actions: Record<string, string> = { 标准动作: 'std', 出招: 'std', 移动动作: 'mov', 身法: 'mov', 次要动作: 'min', 瞬息: 'min', 自由动作: 'free', 随心: 'free', 即时打断: 'interrupt', 即时反应: 'reaction', 借机动作: 'opportunity', 无动作: 'none', 变招: 'react' };
+        const actions: Record<string, string> = { 标准动作: 'std', 出招: 'std', 移动动作: 'mov', 移动: 'mov', 身法: 'mov', 次要动作: 'min', 瞬息: 'min', 自由动作: 'free', 随心: 'free', 即时打断: 'interrupt', 即时反应: 'reaction', 借机动作: 'opportunity', 无动作: 'none', 变招: 'react' };
         if (typeof data.action === 'string') data.action = actions[data.action] ?? data.action;
     }
     if (module === 'schools') data.features = normalizeRows(data.features, false, `${path}.features`);

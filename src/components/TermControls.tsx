@@ -50,7 +50,7 @@ export function RuleText({ label, value = '', onChange }: { label: string; value
                 requestAnimationFrame(() => { ref.current?.focus(); ref.current?.setSelectionRange(start + inserted.length, start + inserted.length); });
             }}>
                 <option value=""><TermDisplay>{"选择要插入的词…"}</TermDisplay></option>
-                {terminology.entries.filter(term => term.category === category && !term.hidden).map(term => <option key={term.id} value={term.original || term.value}>{<TermDisplay>{term.label}</TermDisplay>}</option>)}
+                {terminology.entries.filter(term => term.category === category && !term.hidden).map(term => <option key={term.id} value={term.original || term.value}>{<TermDisplay scope={term.category}>{term.label}</TermDisplay>}</option>)}
             </select>
         </div></details>
     </div>;
@@ -78,7 +78,7 @@ export function TermSelect({ label, category, value = '', snapshot, emptyLabel, 
             {emptyLabel && <option value="">{<TermDisplay>{emptyLabel}</TermDisplay>}</option>}
             {keepSnapshot && <option value={savedOption}>{<TermDisplay>{savedLabel}</TermDisplay>}<TermDisplay>{"（卡片原有名称）"}</TermDisplay></option>}
             {value && !current && !keepSnapshot && <option value={value}>{<TermDisplay>{snapshot || value}</TermDisplay>}<TermDisplay>{"（卡片原有值）"}</TermDisplay></option>}
-            {entries.map(term => <option key={term.id} value={term.value}>{<TermDisplay>{termName(term)}</TermDisplay>}</option>)}
+            {entries.map(term => <option key={term.id} value={term.value}>{<TermDisplay scope={term.category}>{termName(term)}</TermDisplay>}</option>)}
         </select>
         {category !== 'usage' && <details className="term-custom"><summary><TermDisplay>{"自定义"}</TermDisplay>{<TermDisplay>{label}</TermDisplay>}</summary>
             <input className="form-control" aria-label={`输入自定义${label}`} placeholder="输入完整名称后按回车使用" onKeyDown={event => {

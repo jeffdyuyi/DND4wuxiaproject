@@ -14,7 +14,36 @@ export interface Term {
     origin: '4e' | 'wuxia' | 'custom'; reference?: string; source?: string; hidden?: boolean;
     original?: string; replacement?: string; aliases?: string[]; description?: string;
 }
-export interface Terminology { version: 1; autoCollect: boolean; entries: Term[]; }
+export interface Terminology { version: 1; autoCollect: boolean; entries: Term[]; presetRevision?: number; }
+export const WuxiaMappings: [TermCategory, string, string][] = [
+    ['damage', '强酸', '腐蚀'], ['damage', '力场', '罡劲'], ['damage', '火焰', '纯阳'], ['damage', '寒冰', '纯阴'],
+    ['damage', '闪电', '震煞'], ['damage', '毒素', '丹毒'], ['damage', '光耀', '浩然'], ['damage', '暗蚀', '阴煞'], ['damage', '心灵', '胆魄'], ['damage', '雷鸣', '音波'],
+    ['effect', '魅惑', '迷魂'], ['effect', '恐惧', '威慑'], ['effect', '变形', '易容'], ['effect', '医疗', '疗伤'],
+    ['effect', '传送', '移形'], ['effect', '区域', '阵法'], ['effect', '可靠', '无遗'], ['effect', '睡眠', '点穴'],
+    ['accessory', '武器', '兵器'], ['range', '近程', '近距'], ['range', '墙', '气墙'],
+];
+
+function applyWuxiaMappings(entries: Term[], upgrade: boolean): Term[] {
+    for (const [category, original, replacement] of WuxiaMappings) {
+        const term = entries.find(term => term.category === category && (term.original || term.value) === original);
+        if (!term) continue;
+        if (!upgrade || ((!term.replacement || term.replacement === original) && !term.aliases?.length)) {
+            const prior = upgrade ? entries.find(word => word.origin === 'wuxia' && word.category === category && word.value === replacement) : undefined;
+            const name = prior?.label || replacement;
+            term.replacement = name; term.label = name;
+            term.aliases = [...new Set([...(term.aliases || []), ...(prior?.aliases || []), replacement, name])];
+            if (prior?.hidden) term.hidden = true;
+        }
+    }
+    const movement = entries.find(term => term.category === 'action' && term.value === 'mov');
+    if (movement) {
+        if (movement.label === '身法' && movement.replacement === '身法') { movement.label = '移动'; movement.replacement = '移动'; }
+        // Only Reflex owns this alias. Old movement snapshots are resolved using stable mov.
+        movement.aliases = (movement.aliases || []).filter(alias => alias !== '身法');
+    }
+    return entries.filter(term => !(term.origin === 'wuxia' && WuxiaMappings.some(([category, original, replacement]) =>
+        term.category === category && term.value === replacement && entries.some(base => base.category === category && base.value === original && base.aliases?.includes(replacement)))));
+}
 export const keywordCategories: TermCategory[] = ['source', 'damage', 'effect', 'accessory', 'other'];
 export const splitTerms = (text: string) => [...new Set(text.split(/[,，、;；\n]+/).map(word => word.trim()).filter(Boolean))];
 const normalized = (text: string) => text.trim().toLocaleLowerCase();
@@ -48,12 +77,13 @@ export function defaultTerminology(): Terminology {
         ...['抗力', '易伤', '持续伤害', '治疗恢复', '生命值', '豁免检定', '推离', '拉近', '滑动', '命中点'].map(word => ['rule', word] as [TermCategory, string]),
     ];
     for (const [category, original, replacement = ''] of additions) if (!entries.some(term => term.category === category && term.value === original)) entries.push({ id: `4e:${category}:${original}`, category, value: original, original, replacement, label: replacement || original, aliases: replacement ? [replacement] : [], origin: '4e', source: '4E 规则与工具字段' });
-    return { version: 1, autoCollect: true, entries };
+    return { version: 1, autoCollect: true, entries: applyWuxiaMappings(entries, false), presetRevision: 1 };
 }
 export function validateTerminology(value: unknown): Terminology {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('术语库必须是对象');
     const raw = value as Record<string, unknown>;
     if (raw.version !== 1 || typeof raw.autoCollect !== 'boolean' || !Array.isArray(raw.entries)) throw new Error('术语库版本或结构错误');
+    if (raw.presetRevision !== undefined && raw.presetRevision !== 1) throw new Error('术语预设版本错误');
     const ids = new Set<string>(), values = new Set<string>(), labels = new Set<string>();
     const entries = raw.entries.map((entry: unknown) => {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error('术语条目必须是对象');
@@ -75,21 +105,22 @@ export function validateTerminology(value: unknown): Terminology {
         return { ...term, label: term.label.trim() };
     });
     const defaults = defaultTerminology();
-    const migrated = entries.map(term => {
+    let migrated = entries.map(term => {
         if (term.original !== undefined) return term;
         const baseline = defaults.entries.find(base => base.category === term.category && base.value === term.value);
         const original = baseline?.original || term.value;
         return { ...term, original, replacement: term.label === original ? '' : term.label, aliases: baseline?.aliases || [], description: baseline?.description };
     });
+    if (raw.presetRevision === undefined) migrated = applyWuxiaMappings(migrated, true);
     // Add newly supported standard terms without replacing local preferences.
     for (const term of defaults.entries) if (!migrated.some(current => current.category === term.category && (current.value === term.value || current.label === term.label || current.aliases?.includes(term.original || term.value)))) migrated.push(term);
-    return { version: 1, autoCollect: raw.autoCollect, entries: migrated };
+    return { version: 1, autoCollect: raw.autoCollect, entries: migrated, presetRevision: 1 };
 }
 export function addTerms(library: Terminology, category: TermCategory, text: string): Terminology {
     if (category === 'usage') return library;
     const entries = [...library.entries];
     for (const label of splitTerms(text)) {
-        if (entries.some(term => term.category === category && (normalized(term.label) === normalized(label) || normalized(term.value) === normalized(label)))) continue;
+        if (entries.some(term => term.category === category && (normalized(term.label) === normalized(label) || normalized(term.value) === normalized(label) || term.aliases?.some(alias => normalized(alias) === normalized(label))))) continue;
         entries.push({ id: crypto.randomUUID(), category, label, value: label, original: label, replacement: '', aliases: [], origin: 'custom' });
     }
     return entries.length === library.entries.length ? library : { ...library, entries };

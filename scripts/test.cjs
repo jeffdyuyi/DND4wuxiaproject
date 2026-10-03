@@ -329,7 +329,7 @@ test('author information remains complete in its compact layout', () => {
 
 test('reference vocabulary has valid categories, preserved wuxia words and stable rule codes', () => {
     const terms = validateTerminology(defaultTerminology());
-    assert(terms.entries.some(term => term.category === 'damage' && term.label === '火焰'));
+    assert(terms.entries.some(term => term.category === 'damage' && term.original === '火焰' && term.label === '纯阳'));
     assert(terms.entries.some(term => term.category === 'damage' && term.label === '罡劲'));
     assert(terms.entries.some(term => term.category === 'weapon' && term.label === '长剑'));
     assert(terms.entries.some(term => term.category === 'status' && term.label === '倒地'));
@@ -633,7 +633,7 @@ test('global mappings update old card display, clear to originals, preserve data
     const item = createResource('moves'); item.name = '测试威能'; item.hit = '此威能造成火焰伤害。';
     const snapshot = structuredClone(item);
     const render = terms => renderToStaticMarkup(React.createElement(TerminologyContext.Provider, { value: { terminology: terms, update: () => {}, collect: () => {} } }, React.createElement(PowerCard, { item })));
-    assert(render(mapped).includes('测试招式')); assert(render(mapped).includes('此招式造成火焰伤害'));
+    assert(render(mapped).includes('测试招式')); assert(render(mapped).includes('此招式造成纯阳伤害'));
     assert(render(cleared).includes('测试威能')); assert.deepEqual(item, snapshot);
     const archive = readLibraryArchive(makeArchive({ moves: [item] }, mapped));
     assert.equal(createTermTranslator(archive.terminology)('威能'), '招式');
@@ -686,4 +686,72 @@ test('search matches current display names and retains original text queries', (
     assert.equal(searchResources(db, '招式', display)[0].item.id, card.id);
     assert.equal(searchResources(db, '威能', display)[0].item.id, card.id);
     assert.equal(searchResources(db, '格挡', display)[0].item.id, card.id);
+});
+
+test('approved wuxia defaults cover all damage and effect mappings without duplicate suggestions', () => {
+    const { WuxiaMappings } = load('utils/terminology.ts');
+    const terms = validateTerminology(defaultTerminology());
+    for (const [category, original, replacement] of WuxiaMappings) {
+        const entries = terms.entries.filter(term => term.category === category && term.label === replacement);
+        assert.equal(entries.length, 1, original);
+        assert.equal(entries[0].original, original);
+        assert.equal(createTermTranslator(terms, false, category)(original), replacement);
+    }
+    assert.equal(createTermTranslator(terms)('反射 身法 移动动作 强酸'), '身法 身法 移动 腐蚀');
+    assert.equal(createTermTranslator(terms, true)('身法'), '反射');
+    assert.equal(createTermTranslator(terms)('即时打断 即时反应 借机动作 无动作'), '即时打断 即时反应 借机动作 无动作');
+    assert(terms.entries.some(term => term.value === '奇门'));
+});
+test('old vocabulary receives defaults once and preserves authored replacements, cleared values and standalone edits', () => {
+    const terms = defaultTerminology(); delete terms.presetRevision;
+    const fire = terms.entries.find(term => term.category === 'damage' && term.value === '火焰');
+    fire.label = '火焰'; fire.replacement = ''; fire.aliases = [];
+    terms.entries.push({ id: 'wuxia:damage:纯阳', category: 'damage', value: '纯阳', original: '纯阳', replacement: '', label: '纯阳', aliases: [], origin: 'wuxia' });
+    const poison = terms.entries.find(term => term.category === 'damage' && term.value === '毒素');
+    poison.replacement = '剧毒'; poison.label = '剧毒'; poison.hidden = true;
+    const movement = terms.entries.find(term => term.category === 'action' && term.value === 'mov');
+    movement.replacement = '身法'; movement.label = '身法'; movement.aliases = ['身法'];
+    const snapshot = structuredClone(terms);
+    const upgraded = validateTerminology(terms);
+    assert.deepEqual(terms, snapshot);
+    assert.equal(upgraded.entries.find(term => term.value === '火焰').replacement, '纯阳');
+    assert.equal(upgraded.entries.find(term => term.value === '毒素').replacement, '剧毒');
+    assert.equal(upgraded.entries.find(term => term.value === '毒素').hidden, true);
+    assert.equal(upgraded.entries.find(term => term.value === 'mov').replacement, '移动');
+    assert.equal(createTermTranslator(upgraded, true)('身法'), '反射');
+    const cleared = validateTerminology(setReplacement(upgraded, fire.id, ''));
+    const loaded = validateTerminology(JSON.parse(JSON.stringify(cleared)));
+    assert.equal(loaded.entries.find(term => term.value === '火焰').replacement, '');
+    assert.equal(createTermTranslator(loaded)('纯阳'), '火焰');
+});
+test('effect keywords and range fields keep separate meanings and old movement snapshots use mov', () => {
+    const terms = defaultTerminology();
+    const card = createResource('moves'); card.action = 'mov'; card.actionLabel = '身法'; card.att = '力量'; card.def = 'Reflex';
+    card.keywords = '区域，强酸'; card.range = '区域爆发 2（10格内）'; card.hit = '造成强酸伤害并创造区域';
+    const markup = renderToStaticMarkup(React.createElement(TerminologyContext.Provider, { value: { terminology: terms, update: () => {}, collect: () => {} } }, React.createElement(PowerCard, { item: card })));
+    assert(markup.includes('阵法，腐蚀')); assert(markup.includes('区域爆发')); assert(!markup.includes('阵法爆发'));
+    assert(markup.includes('移动')); assert(markup.includes('身法')); assert(markup.includes('腐蚀伤害并创造阵法'));
+    assert.equal(card.actionLabel, '身法');
+});
+
+test('upgrading a renamed wuxia suggestion transfers its authored name into the standard mapping', () => {
+    const terms = defaultTerminology(); delete terms.presetRevision;
+    const fire = terms.entries.find(term => term.category === 'damage' && term.value === '火焰');
+    fire.label = '火焰'; fire.replacement = ''; fire.aliases = [];
+    terms.entries.push({ id: 'wuxia:damage:纯阳', category: 'damage', value: '纯阳', original: '纯阳', replacement: '阳炎', label: '阳炎', aliases: ['纯阳'], hidden: true, origin: 'wuxia' });
+    const upgraded = validateTerminology(terms);
+    const mapped = upgraded.entries.find(term => term.value === '火焰');
+    assert.equal(mapped.label, '阳炎'); assert.equal(mapped.hidden, true);
+    assert.equal(createTermTranslator(upgraded)('火焰 纯阳 阳炎'), '阳炎 阳炎 阳炎');
+    assert.equal(addTerms(upgraded, 'damage', '纯阳'), upgraded);
+    assert.equal(upgraded.entries.filter(term => term.category === 'damage' && term.label === '阳炎').length, 1);
+});
+
+test('editor text translation and inverse conversion preserve authored URLs and code', () => {
+    const terms = defaultTerminology();
+    const value = '火焰伤害 [火焰](https://example.org/纯阳/火焰) `火焰`';
+    const display = createTermTranslator(terms);
+    const canonical = createTermTranslator(terms, true);
+    assert.equal(display(value), '纯阳伤害 [纯阳](https://example.org/纯阳/火焰) `火焰`');
+    assert.equal(canonical(display(value)), value);
 });
