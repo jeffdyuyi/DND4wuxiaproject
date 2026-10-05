@@ -1286,3 +1286,27 @@ test('equipment powers render as embedded sections while standalone powers remai
     assert(standalone.includes('class="card-title"'));
     assert.deepEqual(item, snapshot);
 });
+
+test('progression cards keep multiple powers embedded and preserve independent power exports', () => {
+    const { ProgressionCard } = load('components/Progression.tsx');
+    for (const module of ['traditions', 'paths']) {
+        const item = createResource(module); item.name = '较长的修行资源名称与完整说明';
+        item.powers = [11, 12].map(level => {
+            const power = createResource('moves'); power.name = `较长的附属招式名称${level}`;
+            power.level = 0; power.acquiredLevel = String(level); power.effect = `完整效果${level}`;
+            return power;
+        });
+        const snapshot = structuredClone(item);
+        const html = renderToStaticMarkup(React.createElement(ProgressionCard, { module, item }));
+        assert.equal((html.match(/class="wuxia-card/g) || []).length, 1);
+        assert.equal((html.match(/class="progression-power"/g) || []).length, 2);
+        for (const power of item.powers) {
+            assert(html.includes(power.name)); assert(html.includes(power.effect));
+            const standalone = renderToStaticMarkup(React.createElement(PowerCard, { item: power }));
+            assert(standalone.includes('class="wuxia-card"')); assert(standalone.includes(power.effect));
+        }
+        const summary = renderToStaticMarkup(React.createElement(ProgressionCard, { module, item, summaryOnly: true }));
+        assert(!summary.includes('class="progression-power"'));
+        assert.deepEqual(item, snapshot);
+    }
+});

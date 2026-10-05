@@ -23,7 +23,8 @@
 .bg-gray { background-color: var(--c-feat); }
 
 .card-title { font-family: "LiSu", "隶书", serif; font-size: 1.6em; letter-spacing: 1px; text-shadow: 1px 1px 0 rgba(0,0,0,0.5); }
-.card-meta { font-family: sans-serif; font-size: 0.85em; font-weight: bold; text-align: right; }
+.card-header > :first-child { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.card-meta { font-family: sans-serif; font-size: 0.85em; font-weight: bold; text-align: right; flex: 0 0 auto; max-width: 40%; overflow-wrap: anywhere; }
 .flavor { font-style: italic; padding: 6px 10px; color: #444; background-color: #e8e4dc; border-bottom: 1px solid #c5bba8; font-size: 0.9em; margin-bottom: 2px; }
 .stat-row { padding: 3px 10px; display: flex; align-items: flex-start; }
 .stat-row:nth-child(odd) { background: transparent; }
@@ -53,5 +54,3 @@
 
 /* Equipment powers share the parent card boundary instead of nesting a fixed-width card. */
 .equipment-card > .embedded-power > .progression-power { margin: 0; border: 0; border-top: 2px solid #000; }
-.equipment-card > .embedded-power .card-header > :first-child { min-width: 0; overflow-wrap: anywhere; }
-.equipment-card > .embedded-power .card-meta { flex-shrink: 0; white-space: nowrap; }
