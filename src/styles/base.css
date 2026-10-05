@@ -119,7 +119,7 @@ body {
 .form-group { margin-bottom: 12px; }
 .form-group label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 0.85em; color: #455a64; }
 .form-control { width: 100%; padding: 6px; border: 1px solid var(--ui-border); border-radius: 4px; font-family: inherit; font-size: 0.9em; box-sizing: border-box; }
-textarea.form-control { resize: vertical; min-height: 50px; }
+textarea.form-control { resize: vertical; min-height: 50px; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; max-width: 100%; }
 .row { display: flex; gap: 10px; }
 .col { flex: 1; }
 

@@ -63,7 +63,7 @@ export function ProgressionCard({ module, item, summaryOnly = false }: { module:
         <CardHeader module={module} item={item}><span className="card-title">{<TermDisplay>{item.name}</TermDisplay>}</span>
             <span className="card-meta">{<TermDisplay>{titleOf(module)}</TermDisplay>}{item.entryLevel && <><br />{<TermDisplay>{item.entryLevel}</TermDisplay>}<TermDisplay>{"级起"}</TermDisplay></>}</span></CardHeader>
         {item.flavor && <div className="flavor"><RichText text={item.flavor} /></div>}
-        {item.req && <div className="stat-row"><span><strong><TermDisplay>{"前提条件："}</TermDisplay></strong><RichText text={item.req} /></span></div>}
+        {item.req && <div className="stat-row"><div><strong><TermDisplay>{"前提条件："}</TermDisplay></strong><RichText text={item.req} /></div></div>}
         {item.description && <div className="progression-body"><RichText text={item.description} /></div>}
         {features.length > 0 && <><h3 className="progression-heading">{<TermDisplay>{module === 'traditions' ? '传承特性' : '成道特性'}</TermDisplay>}</h3>{features.map(feature => <section key={feature.id} className="progression-body">
             <strong>{<TermDisplay>{feature.name || '未命名特性'}</TermDisplay>}{<TermDisplay>{feature.level && `（${feature.level}级）`}</TermDisplay>}</strong><div><RichText text={feature.desc} /></div>

@@ -67,7 +67,7 @@ export function EquipmentCard({ item, summaryOnly = false }: { item: EquipmentIt
     const powers = (item.powers ?? []).filter(power => power.name || power.flavor || power.trigger || power.target || power.att || power.hit || power.miss || power.effect || power.sustain || power.special || power.rules?.some(rule => rule.text));
     return <div className="wuxia-card equipment-card">
         <CardHeader item={item} module="items"><span className="card-title"><TermDisplay>{item.name}</TermDisplay></span><span className="card-meta">等级 {item.level}</span></CardHeader>
-        {item.flavor && <div className="flavor"><TermDisplay>{item.flavor}</TermDisplay></div>}
+        {item.flavor && <div className="flavor"><RichText text={item.flavor} /></div>}
         {(item.slot || item.price) && <div className="stat-row"><TermDisplay>{[item.slot, item.price].filter(Boolean).join(' · ')}</TermDisplay></div>}
         {item.type && <div className="stat-row"><span className="label">兵甲类型：</span><TermDisplay>{item.type}</TermDisplay></div>}
         {item.enhance && <div className="stat-row"><span className="label">淬炼：</span><TermDisplay>{item.enhance}</TermDisplay></div>}

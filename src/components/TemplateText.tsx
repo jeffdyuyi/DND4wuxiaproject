@@ -15,6 +15,6 @@ export function TemplateText({ text, original = false }: { text: string; origina
     return <div className="template-prose">{blocks.map((block, index) => {
         const content = original ? block.text : <RichText text={block.text} />;
         if (block.heading) return block.heading <= 2 ? <h4 key={index}>{content}</h4> : <h5 key={index}>{content}</h5>;
-        return <p key={index}>{content}</p>;
+        return original ? <p key={index}>{content}</p> : <div className="template-paragraph" key={index}>{content}</div>;
     })}</div>;
 }

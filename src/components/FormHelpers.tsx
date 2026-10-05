@@ -7,6 +7,7 @@ import { createTermTranslator } from '../utils/term-display';
 import { TermSelect } from './TermControls';
 import type { Trait } from '../types';
 import { buildRange, parseRange } from '../utils/range';
+import { MarkdownTextarea } from './MarkdownTextarea';
 interface FieldProps { label: string; value?: string | number; onChange: (value: string) => void; }
 export function Input({ label, value, onChange }: FieldProps) {
     const id = useId();
@@ -22,7 +23,7 @@ export function Text({ label, value, onChange }: FieldProps) {
     const raw = /原版|来源|参考/.test(label);
     const display = createTermTranslator(terminology);
     const canonical = createTermTranslator(terminology, true);
-    return <div className="form-group"><label htmlFor={id}>{<TermDisplay>{label}</TermDisplay>}</label><textarea id={id} className="form-control" value={raw ? value ?? '' : display(String(value ?? ''))} onChange={event => onChange(raw ? event.target.value : canonical(event.target.value))} /></div>;
+    return <div className="form-group"><label htmlFor={id}>{<TermDisplay>{label}</TermDisplay>}</label><MarkdownTextarea id={id} label={label} value={raw ? String(value ?? '') : display(String(value ?? ''))} onChange={text => onChange(raw ? text : canonical(text))} /></div>;
 }
 export function Select({ label, value, onChange, options }: FieldProps & { options: readonly { v: string; t: string }[] }) {
     const id = useId();

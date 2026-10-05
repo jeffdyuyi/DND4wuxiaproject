@@ -58,6 +58,7 @@
 .template-draft-field dt { font-size: 12px; font-weight: 600; color: var(--interface-muted); margin-bottom: 6px; }
 .template-draft-field dd { margin: 0; font-size: 14px; }
 .template-prose { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; color: var(--interface-ink); }
+.template-paragraph { margin-block: 1em; }
 .template-prose p { margin: 0 0 12px; }
 .template-prose p:last-child { margin-bottom: 0; }
 .template-prose h4, .template-prose h5 { margin: 18px 0 8px; line-height: 1.55; font-weight: 600; }

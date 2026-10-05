@@ -1255,7 +1255,7 @@ test('template detail preview keeps progression feature levels, embedded rules a
     assert(html.includes('完整特性规则'));
     assert(html.includes('所有强化条件均保留。'));
     assert(html.includes('招式等级'));
-    assert(html.includes('<p><span class="rich-text">0</span></p>'));
+    assert(html.includes('<div class="template-paragraph"><span class="rich-text">0</span></div>'));
     assert.deepEqual(draft, snapshot);
 });
 
@@ -1308,5 +1308,53 @@ test('progression cards keep multiple powers embedded and preserve independent p
         const summary = renderToStaticMarkup(React.createElement(ProgressionCard, { module, item, summaryOnly: true }));
         assert(!summary.includes('class="progression-power"'));
         assert.deepEqual(item, snapshot);
+    }
+});
+
+
+test('Markdown selection edits toggle formatting, preserve adjacent text and continue lists without inserting display wraps', () => {
+    const { formatMarkdown, continueMarkdownList, markdownShortcut } = load('utils/markdown-edit.ts');
+    assert.equal(markdownShortcut('B', 'KeyB', false), 'bold');
+    assert.equal(markdownShortcut('i', 'KeyI', false), 'italic');
+    assert.equal(markdownShortcut('u', 'KeyU', false), 'underline');
+    assert.equal(markdownShortcut('&', 'Digit7', true), 'ordered');
+    assert.equal(markdownShortcut('*', 'Digit8', true), 'unordered');
+    assert.equal(markdownShortcut('s', 'KeyS', false), undefined);
+    for (const [kind, marker] of [['bold', '**'], ['italic', '*'], ['underline', '++']]) {
+        const edit = formatMarkdown('前中文后', 1, 3, kind);
+        assert.equal(edit.value, `前${marker}中文${marker}后`);
+        assert.deepEqual(formatMarkdown(edit.value, edit.start, edit.end, kind), { value: '前中文后', start: 1, end: 3 });
+        const empty = formatMarkdown('', 0, 0, kind); assert.equal(empty.value, marker + marker); assert.equal(empty.start, marker.length);
+    }
+    const list = formatMarkdown('甲\n乙\n尾', 0, 4, 'ordered'); assert.equal(list.value, '1. 甲\n2. 乙\n尾');
+    const combined = formatMarkdown('**中文**', 2, 4, 'italic'); assert.equal(combined.value, '***中文***');
+    assert.equal(formatMarkdown(combined.value, combined.start, combined.end, 'italic').value, '**中文**');
+    assert.equal(formatMarkdown(list.value, list.start, list.end, 'ordered').value, '甲\n乙\n尾');
+    assert.equal(formatMarkdown('  1. 甲\n  2. 乙', 0, 14, 'unordered').value, '  - 甲\n  - 乙');
+    assert.equal(continueMarkdownList('9. 甲', 4, 4).value, '9. 甲\n10. ');
+    assert.equal(continueMarkdownList('- 甲\n- ', 6, 6).value, '- 甲\n');
+    assert.equal(continueMarkdownList('正文', 2, 2), undefined);
+    assert.equal(continueMarkdownList('- 中文', 3, 3), undefined);
+    assert.equal(continueMarkdownList('- 甲', 0, 3), undefined);
+});
+
+test('Markdown previews render underline, lists and manual breaks safely across card text fields', () => {
+    const text = '**粗体** *斜体* ++下划线++\n手动换行\n\n- 第一项\n- 第二项\n\n1. 序列甲\n2. 序列乙';
+    const html = renderToStaticMarkup(React.createElement(RichText, { text }));
+    for (const tag of ['<strong>粗体</strong>', '<em>斜体</em>', '<u>下划线</u>', '<br>', '<ul>', '<ol>', '<li>第一项</li>']) assert(html.includes(tag), tag);
+    const unsafe = renderToStaticMarkup(React.createElement(RichText, { text: '++<script>alert(1)</script>++\n\n- [坏链接](javascript:alert(1))' }));
+    assert(!unsafe.includes('<script>')); assert(!unsafe.includes('href="javascript:'));
+    assert(unsafe.includes('&lt;script&gt;'));
+    for (const module of ['schools', 'roots', 'origins', 'destinies', 'feats', 'items', 'traditions', 'paths', 'moves']) {
+        const item = createResource(module); item.flavor = text;
+        if (module === 'schools') { item.description = text; item.features = [{ id: 'f', name: '特性', desc: text }]; }
+        const card = renderToStaticMarkup(React.createElement(CardContent, { module, item }));
+        assert(card.includes('<ul>'), module); assert(card.includes('<u>下划线</u>'), module);
+        assert.deepEqual(readArchive(makeArchive({ [module]: [item] }))[module][0].flavor, text);
+    }
+    const { Text } = load('components/FormHelpers.tsx'), { RuleText } = load('components/TermControls.tsx');
+    for (const Component of [Text, RuleText]) {
+        const editor = renderToStaticMarkup(React.createElement(Component, { label: '测试正文', value: text, onChange: () => {} }));
+        assert(editor.includes('wrap="soft"')); assert(editor.includes('无序列表')); assert(editor.includes('Ctrl / ⌘ + B')); assert(editor.includes('++文字++'));
     }
 });

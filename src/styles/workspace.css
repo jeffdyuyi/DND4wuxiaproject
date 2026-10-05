@@ -28,7 +28,18 @@
 .preview-stage { flex-shrink: 0; }
 .wuxia-card { overflow-wrap: anywhere; }
 .card-header { gap: 8px; }
-.rich-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rich-text { white-space: normal; overflow-wrap: anywhere; }
+.rich-text-block { min-width: 0; max-width: 100%; text-indent: 0; }
+.rich-text-block > :first-child { margin-top: 0; }
+.rich-text-block > :last-child { margin-bottom: 0; }
+.rich-text-block p { margin: .4em 0; }
+.rich-text-block ul, .rich-text-block ol { margin: .4em 0; padding-left: 1.6em; list-style-position: outside; }
+.rich-text-block li { margin: .15em 0; }
+.rich-text-block pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.markdown-editor { min-width: 0; }
+.markdown-toolbar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
+.markdown-toolbar .btn { padding: 3px 7px; min-height: 26px; font-size: 12px; }
+.markdown-help { display: block; margin-top: 4px; line-height: 1.5; color: #66747d; }
 .dialog { width: min(480px, calc(100vw - 40px)); padding: 24px; border: 1px solid #b7b0a2; border-radius: 10px; background: #fdfbf7; color: #263238; box-sizing: border-box; max-height: 85vh; overflow-y: auto; }
 .dialog::backdrop { background: rgba(0,0,0,0.55); }
 .dialog h2 { margin-top: 0; }

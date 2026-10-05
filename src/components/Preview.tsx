@@ -127,7 +127,7 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
                 <div className="stat-row" style={{ marginTop: '8px' }}>
                     <span><strong><TermDisplay>{"擅长"}</TermDisplay></strong></span>
                 </div>
-                <div className="indent-block"><TermDisplay>{"护甲："}</TermDisplay>{<TermDisplay>{d.armorProf}</TermDisplay>}<br /><TermDisplay>{"兵器："}</TermDisplay>{<TermDisplay>{d.weaponProf}</TermDisplay>}<br /><TermDisplay>{"防御加值："}</TermDisplay>{<TermDisplay>{d.defBonus}</TermDisplay>}
+                <div className="indent-block"><TermDisplay>{"护甲："}</TermDisplay>{md(d.armorProf)}<br /><TermDisplay>{"兵器："}</TermDisplay>{md(d.weaponProf)}<br /><TermDisplay>{"防御加值："}</TermDisplay>{<TermDisplay>{d.defBonus}</TermDisplay>}
                 </div>
 
                 <div className="stat-row" style={{ marginTop: '8px' }}>
@@ -163,7 +163,7 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
                     {d.speed && <div><strong><TermDisplay>{"速度："}</TermDisplay></strong> {<TermDisplay>{d.speed}</TermDisplay>}</div>}
                     {d.vision && <div><strong><TermDisplay>{"视觉："}</TermDisplay></strong> {<TermDisplay>{d.vision}</TermDisplay>}</div>}
                 </div>
-                <div className="flavor">{<TermDisplay>{d.flavor}</TermDisplay>}</div>
+                <div className="flavor">{md(d.flavor)}</div>
             </div>
         );
     } else if (module === 'origins') {
@@ -174,7 +174,7 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
                     <span className="card-title">{<TermDisplay>{d.name}</TermDisplay>}</span>
                     <span className="card-meta"><TermDisplay>{"江湖出身"}</TermDisplay></span>
                 </CardHeader>
-                <div className="flavor">{<TermDisplay>{d.flavor}</TermDisplay>}</div>
+                <div className="flavor">{md(d.flavor)}</div>
 
                 <div className="stat-row"><span><span className="label"><TermDisplay>{"语言："}</TermDisplay></span>{<TermDisplay>{d.languages}</TermDisplay>}</span></div>
                 <div className="stat-row"><span><span className="label"><TermDisplay>{"技能加值："}</TermDisplay></span>{<TermDisplay>{d.skillBonuses}</TermDisplay>}</span></div>
@@ -184,7 +184,7 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
                         {d.traits.map((t) => (
                             <div key={t.id} style={{ marginBottom: '8px' }}>
                                 <span className="label">{<TermDisplay>{t.name}</TermDisplay>}<TermDisplay>{"："}</TermDisplay></span>
-                                <span>{<TermDisplay>{md(t.desc)}</TermDisplay>}</span>
+                                <div>{md(t.desc)}</div>
                             </div>
                         ))}
                     </div>
@@ -202,14 +202,14 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
                     <span className="card-title">{<TermDisplay>{d.name}</TermDisplay>}</span>
                     <span className="card-meta"><TermDisplay>{"先天命格 / "}</TermDisplay>{<TermDisplay>{d.powerType || '特殊'}</TermDisplay>}</span>
                 </CardHeader>
-                <div className="flavor">{<TermDisplay>{d.flavor}</TermDisplay>}</div>
+                <div className="flavor">{md(d.flavor)}</div>
                 <div className="stat-row">
                     <span>
                         {action.t && <span className={`act-badge ${action.c}`}>{<TermDisplay>{d.actionLabel ?? action.t}</TermDisplay>}</span>}
                         {d.range && <span><span className="label"><TermDisplay>{"范围："}</TermDisplay></span>{<TermDisplay scope="range">{d.range}</TermDisplay>}</span>}
                     </span>
                 </div>
-                {d.target && <div className="stat-row"><span><span className="label"><TermDisplay>{"目标："}</TermDisplay></span>{<TermDisplay>{md(d.target)}</TermDisplay>}</span></div>}
+                {d.target && <div className="stat-row"><div><span className="label"><TermDisplay>{"目标："}</TermDisplay></span>{md(d.target)}</div></div>}
                 {d.effect && <div className="indent-block"><span className="lbl-effect"><TermDisplay>{"效果："}</TermDisplay></span>{<TermDisplay>{md(d.effect)}</TermDisplay>}</div>}
             </div>
         );
@@ -225,7 +225,7 @@ export function CardContent({ module, item, format = "full" }: { module: ModuleT
                     <span className="card-title">{<TermDisplay>{d.name}</TermDisplay>}</span>
                     <span className="card-meta">{<TermDisplay>{meta}</TermDisplay>}</span>
                 </CardHeader>
-                <div className="flavor">{<TermDisplay>{d.flavor}</TermDisplay>}</div>
+                <div className="flavor">{md(d.flavor)}</div>
                 {d.stats && <div className="stat-row"><span><span className="label"><TermDisplay>{"属性加成："}</TermDisplay></span>{<TermDisplay>{d.stats}</TermDisplay>}</span></div>}
                 {d.traits && <div className="stat-row"><span><span className="label"><TermDisplay>{"特征："}</TermDisplay></span>{<TermDisplay>{d.traits}</TermDisplay>}</span></div>}
                 {d.skills && <div className="stat-row"><span><span className="label"><TermDisplay>{"相关技艺："}</TermDisplay></span>{<TermDisplay>{d.skills}</TermDisplay>}</span></div>}

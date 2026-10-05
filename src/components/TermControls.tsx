@@ -3,6 +3,7 @@ import { useId, useRef, useState } from 'react';
 import { useTerminology } from '../hooks/TerminologyContext';
 import { TermCategories, type TermCategory } from '../utils/terminology';
 import { createTermTranslator, termName } from '../utils/term-display';
+import { MarkdownTextarea } from './MarkdownTextarea';
 
 /** Suggestions never prevent free text or rewrite a previously authored value. */
 export function TermInput({ label, value = '', categories, collectAs = categories[0] , onChange }: {
@@ -34,7 +35,7 @@ export function RuleText({ label, value = '', onChange }: { label: string; value
     const display = createTermTranslator(terminology);
     const canonical = createTermTranslator(terminology, true);
     return <div className="form-group"><label htmlFor={id}>{<TermDisplay>{label}</TermDisplay>}</label>
-        <textarea ref={ref} id={id} className="form-control" value={display(value)} onChange={event => onChange(canonical(event.target.value))} />
+        <MarkdownTextarea textareaRef={ref} id={id} label={label} value={display(value)} onChange={text => onChange(canonical(text))} />
         <details className="term-custom"><summary><TermDisplay>{"插入术语"}</TermDisplay></summary><div className="row">
             <select aria-label={`${label}的术语分类`} value={category} onChange={event => setCategory(event.target.value as TermCategory)}>
                 {Object.entries(TermCategories).map(([key, title]) => <option key={key} value={key}>{<TermDisplay>{title}</TermDisplay>}</option>)}
